@@ -7,9 +7,6 @@ return {
     "saghen/blink.cmp", -- For LSP capabilities (auto-detected in 0.11)
   },
   config = function()
-    -- Disable semantic highlighting for Rust strings to allow Treesitter injections
-    vim.api.nvim_set_hl(0, "@lsp.type.string.rust", {})
-
     -- Diagnostic Configuration
     vim.diagnostic.config({
       -- Show diagnostic signs in the sign column
@@ -44,7 +41,7 @@ return {
       -- Floating window configuration
       float = {
         border = "rounded",
-        source = "always",
+        source = true,
         header = "",
         prefix = "",
       },
@@ -141,8 +138,12 @@ return {
         end, opts)
 
         -- Go to next/previous diagnostic
-        vim.keymap.set("n", "[d", vim.diagnostic.goto_prev, opts)
-        vim.keymap.set("n", "]d", vim.diagnostic.goto_next, opts)
+        vim.keymap.set("n", "[d", function()
+          vim.diagnostic.jump({ count = -1 })
+        end, opts)
+        vim.keymap.set("n", "]d", function()
+          vim.diagnostic.jump({ count = 1 })
+        end, opts)
 
         -- INLAY HINTS CONFIGURATION
         if client and client.server_capabilities.inlayHintProvider and vim.lsp.inlay_hint then

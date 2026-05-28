@@ -1,7 +1,7 @@
 return {
   "mrcjkb/rustaceanvim",
-  version = "^5", -- Recommended
-  lazy = false, -- This plugin is already lazy
+  version = "^5",
+  ft = { "rust" },
   init = function()
     -- We define a function for vim.g.rustaceanvim to ensure it's evaluated lazily
     -- and only when a Rust file is actually opened.
@@ -15,7 +15,7 @@ return {
       if vim.fn.isdirectory(extension_path) == 1 then
         codelldb_path = extension_path .. "adapter/codelldb"
         liblldb_path = extension_path .. "lsp/lib/liblldb"
-        local this_os = vim.loop.os_uname().sysname
+        local this_os = vim.uv.os_uname().sysname
 
         -- Path detection for different OS
         if this_os:find("Windows") then
@@ -43,22 +43,40 @@ return {
           },
         },
         server = {
-          on_attach = function(client, bufnr)
-            -- Keymaps are handled in after/ftplugin/rust.lua
-          end,
           default_settings = {
             ["rust-analyzer"] = {
+              numThreads = 6,
               checkOnSave = true,
               check = {
                 command = "clippy",
                 extraArgs = { "--no-deps" },
+                invocationStrategy = "once",
               },
               procMacro = {
                 enable = true,
               },
               cargo = {
-                allFeatures = true,
+                allFeatures = false,
                 loadOutDirsFromCheck = true,
+                targetDir = true,
+              },
+              lru = {
+                capacity = 128,
+              },
+              files = {
+                excludeDirs = { ".direnv", "target", "node_modules" },
+              },
+              inlayHints = {
+                bindingModeHints = { enable = true },
+                closureReturnTypeHints = { enable = "always" },
+                lifetimeElisionHints = {
+                  enable = "skip_trivial",
+                  useParameterNames = true,
+                },
+                parameterHints = { enable = true },
+              },
+              semanticHighlighting = {
+                strings = { enable = false },
               },
             },
           },
