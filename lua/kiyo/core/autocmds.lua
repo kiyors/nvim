@@ -5,7 +5,11 @@ local augroup = vim.api.nvim_create_augroup
 local general = augroup("General", { clear = true })
 
 -- don't auto comment new line
-autocmd("BufEnter", { command = [[set formatoptions-=cro]] })
+autocmd("BufEnter", {
+  group = general,
+  command = [[set formatoptions-=cro]],
+  desc = "Disable auto-commenting on new lines",
+})
 
 -- wrap words "softly" (no carriage return) in mail buffer
 autocmd("Filetype", {
@@ -65,25 +69,6 @@ vim.api.nvim_create_autocmd("BufEnter", {
   end,
 })
 
--- Highlight on yank
-autocmd("TextYankPost", {
-  callback = function()
-    vim.highlight.on_yank()
-  end,
-})
-
--- go to last loc when opening a buffer
--- this mean that when you open a file, you will be at the last position
-autocmd("BufReadPost", {
-  callback = function()
-    local mark = vim.api.nvim_buf_get_mark(0, '"')
-    local lcount = vim.api.nvim_buf_line_count(0)
-    if mark[1] > 0 and mark[1] <= lcount then
-      pcall(vim.api.nvim_win_set_cursor, 0, mark)
-    end
-  end,
-})
-
 -- auto close brackets
 -- this
 autocmd("FileType", { pattern = "man", command = [[nnoremap <buffer><silent> q :quit<CR>]] })
@@ -106,27 +91,31 @@ autocmd("FileType", {
   group = augroup("close_with_q", { clear = true }),
   pattern = {
     "PlenaryTestPopup",
+    "DressingSelect",
+    "Jaq",
+    "checkhealth",
+    "git",
     "help",
+    "lir",
     "lspinfo",
     "man",
+    "neotest-output",
+    "neotest-output-panel",
+    "neotest-summary",
+    "netrw",
     "notify",
+    "oil",
     "qf",
+    "query",
     "spectre_panel",
     "startuptime",
     "tsplayground",
-    "neotest-output",
-    "checkhealth",
-    "neotest-summary",
-    "neotest-output-panel",
   },
   callback = function(event)
     vim.bo[event.buf].buflisted = false
     vim.keymap.set("n", "q", "<cmd>close<cr>", { buffer = event.buf, silent = true })
   end,
 })
-
--- resize neovim split when terminal is resized
-vim.api.nvim_command("autocmd VimResized * wincmd =")
 
 -- fix terraform and hcl comment string
 autocmd("FileType", {
@@ -260,12 +249,12 @@ autocmd("BufWritePre", {
   desc = "Remove trailing whitespace",
 })
 
--- Auto-resize splits when window is resized
+-- Auto-resize splits across all tabs when window is resized
 autocmd("VimResized", {
   group = general,
   pattern = "*",
-  command = "wincmd =",
-  desc = "Auto-resize splits",
+  command = "tabdo wincmd =",
+  desc = "Auto-resize splits across tabs",
 })
 
 -- Return to last edit position when opening files
@@ -289,52 +278,15 @@ autocmd("BufWritePre", {
     if event.match:match("^%w%w+://") then
       return
     end
-    local file = vim.loop.fs_realpath(event.match) or event.match
+    local file = vim.uv.fs_realpath(event.match) or event.match
     vim.fn.mkdir(vim.fn.fnamemodify(file, ":p:h"), "p")
   end,
   desc = "Auto-create directories",
 })
 
-autocmd({ "BufWinEnter" }, {
-  callback = function()
-    vim.cmd("set formatoptions-=cro")
-  end,
-})
-
-autocmd({ "FileType" }, {
-  pattern = {
-    "netrw",
-    "Jaq",
-    "qf",
-    "git",
-    "help",
-    "man",
-    "lspinfo",
-    "oil",
-    "spectre_panel",
-    "lir",
-    "DressingSelect",
-    "tsplayground",
-    "query",
-    "",
-  },
-  callback = function()
-    vim.cmd([[
-      nnoremap <silent> <buffer> q :close<CR>
-      set nobuflisted
-    ]])
-  end,
-})
-
 autocmd({ "CmdWinEnter" }, {
   callback = function()
     vim.cmd("quit")
-  end,
-})
-
-autocmd({ "VimResized" }, {
-  callback = function()
-    vim.cmd("tabdo wincmd =")
   end,
 })
 

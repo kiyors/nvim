@@ -155,8 +155,8 @@ function M.setup_commands()
 
     local buf = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
-    vim.api.nvim_buf_set_option(buf, "modifiable", false)
-    vim.api.nvim_buf_set_option(buf, "buftype", "nofile")
+    vim.bo[buf].modifiable = false
+    vim.bo[buf].buftype = "nofile"
 
     local width = 60
     local height = #lines
@@ -172,8 +172,8 @@ function M.setup_commands()
       title_pos = "center",
     })
 
-    vim.api.nvim_buf_set_keymap(buf, "n", "q", ":close<CR>", { noremap = true, silent = true })
-    vim.api.nvim_buf_set_keymap(buf, "n", "<Esc>", ":close<CR>", { noremap = true, silent = true })
+    vim.keymap.set("n", "q", "<cmd>close<cr>", { buffer = buf, silent = true })
+    vim.keymap.set("n", "<Esc>", "<cmd>close<cr>", { buffer = buf, silent = true })
   end, { desc = "Show project configuration detection info" })
 end
 
