@@ -16,13 +16,13 @@ return {
             icon = " ",
             key = "f",
             desc = "Find File",
-            action = ":lua Snacks.dashboard.pick('files')",
+            action = ":lua require('kiyo.utils.fff_snacks').find_files()",
           },
           {
             icon = " ",
             key = "g",
             desc = "Find Text",
-            action = ":lua Snacks.dashboard.pick('live_grep')",
+            action = ":lua require('kiyo.utils.fff_snacks').live_grep()",
           },
           {
             icon = " ",
@@ -159,7 +159,7 @@ return {
 
     -- Find (find_files/grep handled by fff.nvim)
     { "<leader>fb", function() Snacks.picker.buffers() end, desc = "Buffers" },
-    { "<leader>fc", function() Snacks.picker.files({ cwd = vim.fn.stdpath("config") }) end, desc = "Find Config File" },
+    { "<leader>fc", function() require("kiyo.utils.fff_snacks").find_files({ cwd = vim.fn.stdpath("config") }) end, desc = "Find Config File" },
     { "<leader>fg", function() Snacks.picker.git_files() end, desc = "Find Git Files" },
     { "<leader>fp", function() Snacks.picker.projects() end, desc = "Projects" },
     { "<leader>fr", function() Snacks.picker.recent() end, desc = "Recent" },

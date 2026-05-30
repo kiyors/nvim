@@ -4,6 +4,24 @@
 
 local M = {}
 
+local init_failed = false
+
+local function ensure_picker_initialized()
+  if init_failed then
+    return false
+  end
+  local file_picker = require("fff.file_picker")
+  if file_picker.is_initialized() then
+    return true
+  end
+  if file_picker.setup() then
+    return true
+  end
+  init_failed = true
+  vim.notify("fff_snacks: failed to initialize file picker", vim.log.levels.ERROR)
+  return false
+end
+
 local staged_status = {
   staged_new = true,
   staged_modified = true,
@@ -81,24 +99,25 @@ local find_files_source = {
   title = "FFFiles",
   live = true,
   formatters = { file = { filename_first = true } },
+  on_show = function(picker)
+    local base = picker.opts.cwd or vim.uv.cwd()
+    picker.opts._fff_cwd = base
+    picker.opts._fff_current = base and get_current_file(base) or nil
+  end,
   finder = function(opts, ctx)
-    local file_picker = require("fff.file_picker")
-    if not file_picker.is_initialized() then
-      if not file_picker.setup() then
-        vim.notify("fff_snacks: failed to initialize file picker", vim.log.levels.ERROR)
-        return {}
-      end
+    if not ensure_picker_initialized() then
+      return {}
     end
 
     local config = require("fff.conf").get()
     local merged = vim.tbl_deep_extend("force", config or {}, opts or {})
-    local base = opts.cwd or vim.uv.cwd()
+    local base = opts._fff_cwd or opts.cwd or vim.uv.cwd()
     if not base then
       return {}
     end
 
-    local current = get_current_file(base)
-    local result = file_picker.search_files(
+    local current = opts._fff_current
+    local result = require("fff.file_picker").search_files(
       ctx.filter.search,
       current,
       opts.limit or merged.max_results,
@@ -147,12 +166,8 @@ local live_grep_source = {
   format = "file",
   live = true,
   finder = function(opts, ctx)
-    local file_picker = require("fff.file_picker")
-    if not file_picker.is_initialized() then
-      if not file_picker.setup() then
-        vim.notify("fff_snacks: failed to initialize file picker", vim.log.levels.ERROR)
-        return {}
-      end
+    if not ensure_picker_initialized() then
+      return {}
     end
 
     opts = vim.deepcopy(opts) or {}

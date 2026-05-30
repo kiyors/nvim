@@ -17,71 +17,48 @@ return {
       modes = { "plain", "regex", "fuzzy" },
     },
   },
-  keys = {
-    {
-      "<leader>ff",
-      function()
-        require("kiyo.utils.fff_snacks").find_files()
-      end,
-      desc = "Find files (fff)",
-    },
-    {
-      "<leader><space>",
-      function()
-        require("kiyo.utils.fff_snacks").find_files()
-      end,
-      desc = "Find files (fff)",
-    },
-    {
-      "<leader>/",
-      function()
-        require("kiyo.utils.fff_snacks").live_grep()
-      end,
-      desc = "Grep (fff)",
-    },
-    {
-      "<leader>fw",
-      function()
-        require("kiyo.utils.fff_snacks").live_grep()
-      end,
-      desc = "Grep (fff)",
-    },
-    {
-      "<leader>fW",
-      function()
-        require("kiyo.utils.fff_snacks").grep_word()
-      end,
-      desc = "Grep word under cursor (fff)",
-      mode = { "n", "x" },
-    },
-    {
-      "<leader>sg",
-      function()
-        require("kiyo.utils.fff_snacks").live_grep()
-      end,
-      desc = "Grep (fff)",
-    },
-    {
-      "<leader>sw",
-      function()
-        require("kiyo.utils.fff_snacks").grep_word()
-      end,
-      desc = "Grep word under cursor (fff)",
-      mode = { "n", "x" },
-    },
-    {
-      "<leader>fz",
-      function()
-        require("kiyo.utils.fff_snacks").live_grep({ grep_mode = { "fuzzy", "plain", "regex" } })
-      end,
-      desc = "Fuzzy grep (fff)",
-    },
-    {
-      "<leader>fm",
-      function()
-        require("fff").live_grep({ query = "git:modified " })
-      end,
-      desc = "Grep git-modified files (fff)",
-    },
-  },
+  config = function(_, opts)
+    require("fff").setup(opts)
+    -- Pre-warm the file index so the first <leader>ff / <leader><space>
+    -- shows files immediately instead of waiting on a cold scan.
+    vim.schedule(function()
+      pcall(function()
+        require("fff.file_picker").setup()
+      end)
+    end)
+  end,
+  keys = (function()
+    local function find_files()
+      require("kiyo.utils.fff_snacks").find_files()
+    end
+    local function live_grep(opts)
+      require("kiyo.utils.fff_snacks").live_grep(opts)
+    end
+    local function grep_word()
+      require("kiyo.utils.fff_snacks").grep_word()
+    end
+    return {
+      { "<leader>ff", find_files, desc = "Find files (fff)" },
+      { "<leader><space>", find_files, desc = "Find files (fff)" },
+      { "<leader>/", live_grep, desc = "Grep (fff)" },
+      { "<leader>fw", live_grep, desc = "Grep (fff)" },
+      { "<leader>fW", grep_word, desc = "Grep word under cursor (fff)", mode = { "n", "x" } },
+      { "<leader>sg", live_grep, desc = "Grep (fff)" },
+      { "<leader>sw", grep_word, desc = "Grep word under cursor (fff)", mode = { "n", "x" } },
+      {
+        "<leader>fz",
+        function()
+          live_grep({ grep_mode = { "fuzzy", "plain", "regex" } })
+        end,
+        desc = "Fuzzy grep (fff)",
+      },
+      {
+        "<leader>fm",
+        function()
+          live_grep({ search = "git:modified " })
+        end,
+        desc = "Grep git-modified files (fff)",
+      },
+    }
+  end)(),
 }
