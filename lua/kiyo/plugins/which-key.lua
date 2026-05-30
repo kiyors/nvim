@@ -28,6 +28,7 @@ return {
         { "<leader>g", group = "Gitsigns" },
         { "<leader>R", group = "Replace" },
         { "<leader>l", group = "LSP" },
+        { "<leader>L", group = "Laravel" },
         { "<leader>c", group = "LSP (Trouble)" },
         { "<leader>t", group = "Test" },
         { "<leader>D", group = "Debugger" },
