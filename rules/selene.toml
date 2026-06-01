@@ -1,0 +1,7 @@
+std = "lua51+vim"
+
+[lints]
+mixed_table = "allow"
+global_usage = "allow"
+multiple_statements = "allow"
+if_same_then_else = "allow"

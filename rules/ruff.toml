@@ -1,0 +1,26 @@
+line-length = 120
+target-version = "py311"
+
+[lint]
+# E,F = pycodestyle errors + pyflakes (default); add a few useful sets
+select = [
+  "E",   # pycodestyle errors
+  "F",   # pyflakes
+  "W",   # pycodestyle warnings
+  "I",   # isort
+  "B",   # flake8-bugbear
+  "UP",  # pyupgrade
+  "SIM", # flake8-simplify
+  "RUF", # ruff-specific
+]
+ignore = [
+  "E501", # line too long (formatter handles wrapping)
+]
+
+[lint.per-file-ignores]
+"__init__.py" = ["F401"] # re-exports
+"tests/**/*.py" = ["B011"]
+
+[format]
+quote-style = "double"
+indent-style = "space"

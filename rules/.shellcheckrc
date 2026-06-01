@@ -1,0 +1,11 @@
+# Follow `source <file>` references when linting
+external-sources=true
+
+# Resolve sourced files relative to the script's own directory by default
+source-path=SCRIPTDIR
+
+# Globally disabled checks (uncomment as needed):
+# SC1090: Can't follow non-constant source
+# SC1091: Not following: file not found
+# SC2034: variable unused (common for sourced env vars)
+disable=SC1090,SC1091
