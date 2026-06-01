@@ -18,116 +18,39 @@ return {
     },
   },
   opts = function()
-    local conform = require("conform")
     local util = require("conform.util")
+    local pu = require("kiyo.utils.project-utils")
 
-    -- Helper function to merge tables immutably
-    local function merge_table_immutable(original, override)
-      return setmetatable(override, { __index = original })
+    -- Shallow merge that inherits unset keys from `base` via metatable.
+    local function extend_formatter(base, override)
+      return setmetatable(override, { __index = base })
     end
 
-    -- Helper function to check if a file exists
-    local function file_exists(path)
-      local stat = vim.loop.fs_stat(path)
-      return stat and stat.type == "file"
-    end
-
-    -- Helper function to find config files in project
-    local function find_config_file(filenames, start_path)
-      start_path = start_path or vim.fn.getcwd()
-      for _, filename in ipairs(filenames) do
-        local found = vim.fs.find(filename, {
-          upward = true,
-          path = start_path,
-          limit = 1,
-        })
-        if #found > 0 then
-          return found[1]
-        end
-      end
-      return nil
-    end
-
-    -- Get default biome config path
-    local default_biome_config = vim.fn.stdpath("config") .. "/rules/biome.jsonc"
-
-    -- Configure biome with project detection and fallback
-    local biome_for_project = merge_table_immutable(require("conform.formatters.biome"), {
-      require_cwd = false, -- Allow global usage with fallback config
-      args = function(self, ctx)
+    -- biome: project config wins, fallback to rules/biome.jsonc
+    local biome_for_project = extend_formatter(require("conform.formatters.biome"), {
+      require_cwd = false,
+      args = function(_, ctx)
         local args = { "check", "--write", "--unsafe", "--stdin-file-path", "$FILENAME" }
-
-        -- Try to find project-specific biome config
-        local project_config = find_config_file({
-          "biome.json",
-          "biome.jsonc",
-        }, ctx.dirname)
-
-        if project_config then
-          -- Use project config
-          table.insert(args, "--config-path=" .. vim.fn.fnamemodify(project_config, ":h"))
-        elseif file_exists(default_biome_config) then
-          -- Fallback to default config
-          table.insert(args, "--config-path=" .. vim.fn.fnamemodify(default_biome_config, ":h"))
+        local config_dir = pu.get_biome_config_dir(ctx.dirname)
+        if config_dir then
+          table.insert(args, "--config-path=" .. config_dir)
         end
-
         return args
       end,
-      cwd = util.root_file({
-        "biome.json",
-        "biome.jsonc",
-        "package.json",
-      }),
+      cwd = util.root_file(vim.list_extend(vim.deepcopy(pu.BIOME_CONFIG_FILES), { "package.json" })),
     })
 
-    -- Configure prettier with project detection
-    local prettier_for_project = merge_table_immutable(require("conform.formatters.prettier"), {
+    -- prettier: only when project config exists
+    local prettier_for_project = extend_formatter(require("conform.formatters.prettier"), {
       require_cwd = true,
-      cwd = util.root_file({
-        ".prettierrc",
-        ".prettierrc.json",
-        ".prettierrc.yml",
-        ".prettierrc.yaml",
-        ".prettierrc.json5",
-        ".prettierrc.js",
-        ".prettierrc.cjs",
-        ".prettierrc.mjs",
-        "prettier.config.js",
-        "prettier.config.cjs",
-        "prettier.config.mjs",
-        "package.json",
-      }),
+      cwd = util.root_file(vim.list_extend(vim.deepcopy(pu.PRETTIER_CONFIG_FILES), { "package.json" })),
     })
 
-    -- Smart formatter selection for JS/TS files
+    -- biome > prettier (only if project prettier config) > biome (default)
     local function js_like_formatters(bufnr)
       bufnr = bufnr or vim.api.nvim_get_current_buf()
-      if vim.b[bufnr].cached_js_formatters then
-        return vim.b[bufnr].cached_js_formatters
-      end
 
-      local bufname = vim.api.nvim_buf_get_name(bufnr)
-      local dirname = vim.fn.fnamemodify(bufname, ":h")
-
-      -- Check if project has biome config
-      local has_biome = find_config_file({ "biome.json", "biome.jsonc" }, dirname) ~= nil
-
-      -- Check if project has prettier config
-      local has_prettier = find_config_file({
-        ".prettierrc",
-        ".prettierrc.json",
-        ".prettierrc.yml",
-        ".prettierrc.yaml",
-        ".prettierrc.json5",
-        ".prettierrc.js",
-        ".prettierrc.cjs",
-        ".prettierrc.mjs",
-        "prettier.config.js",
-        "prettier.config.cjs",
-        "prettier.config.mjs",
-      }, dirname) ~= nil
-
-      -- Check for deno
+      -- deno LSP takes precedence; do not cache (LSP attach is async)
       local clients = vim.lsp.get_clients({ bufnr = bufnr })
       for _, client in pairs(clients) do
         if client.name == "denols" then
@@ -135,19 +58,38 @@ return {
         end
       end
 
-      local result
-      -- Priority: biome (project or default) > prettier (project) > prettier (global)
-      if has_biome then
-        result = { "biome_for_project" }
-      elseif has_prettier then
-        result = { "prettier_for_project" }
-      else
+      return pu.cached(bufnr, "cached_js_formatters", function()
+        local dirname = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(bufnr), ":h")
+        if pu.has_biome_config(dirname) then
+          return { "biome_for_project" }
+        elseif pu.has_prettier_config(dirname) then
+          return { "prettier_for_project" }
+        end
         -- Fallback to biome with default config
-        result = { "biome_for_project" }
-      end
-      
-      vim.b[bufnr].cached_js_formatters = result
-      return result
+        return { "biome_for_project" }
+      end)
+    end
+
+    local function json_formatters(bufnr)
+      bufnr = bufnr or vim.api.nvim_get_current_buf()
+      return pu.cached(bufnr, "cached_json_formatters", function()
+        local dirname = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(bufnr), ":h")
+        if pu.has_biome_config(dirname) then
+          return { "biome_for_project" }
+        end
+        -- stop_after_first: try project prettier first, then biome with default config
+        return { "prettier_for_project", "biome_for_project", stop_after_first = true }
+      end)
+    end
+
+    -- pint is Laravel-only; fall back to php-cs-fixer for vanilla PHP projects
+    local function php_formatters(bufnr)
+      bufnr = bufnr or vim.api.nvim_get_current_buf()
+      return pu.cached(bufnr, "cached_php_formatters", function()
+        local dirname = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(bufnr), ":h")
+        local is_laravel = pu.find_config_file({ "artisan" }, dirname) ~= nil
+        return is_laravel and { "pint" } or { "php_cs_fixer" }
+      end)
     end
 
     return {
@@ -163,39 +105,19 @@ return {
         typescriptreact = js_like_formatters,
 
         -- JSON - prefer biome, fallback to prettier
-        json = function(bufnr)
-          bufnr = bufnr or vim.api.nvim_get_current_buf()
-          if vim.b[bufnr].cached_json_formatters then
-            return vim.b[bufnr].cached_json_formatters
-          end
-          local dirname = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(bufnr), ":h")
-          local has_biome = find_config_file({ "biome.json", "biome.jsonc" }, dirname) ~= nil
-          local result = has_biome and { "biome_for_project" } or { "prettier_for_project", "biome_for_project" }
-          vim.b[bufnr].cached_json_formatters = result
-          return result
-        end,
-        jsonc = function(bufnr)
-          bufnr = bufnr or vim.api.nvim_get_current_buf()
-          if vim.b[bufnr].cached_json_formatters then
-            return vim.b[bufnr].cached_json_formatters
-          end
-          local dirname = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(bufnr), ":h")
-          local has_biome = find_config_file({ "biome.json", "biome.jsonc" }, dirname) ~= nil
-          local result = has_biome and { "biome_for_project" } or { "prettier_for_project", "biome_for_project" }
-          vim.b[bufnr].cached_json_formatters = result
-          return result
-        end,
+        json = json_formatters,
+        jsonc = json_formatters,
 
-        -- Core Web (Keeping your Biome preference)
-        html = { "biome" },
-        css = { "biome" },
+        -- Core Web (Biome with default config fallback)
+        html = { "biome_for_project" },
+        css = { "biome_for_project" },
 
-        -- Data, Docs, and Content (Oxfmt taking over Prettier)
+        -- Data, Docs, and Content
         markdown = { "oxfmt" },
         mdx = { "oxfmt" },
         yaml = { "oxfmt" },
 
-        -- Additional Styling & Frameworks (Oxfmt)
+        -- Additional Styling & Frameworks
         scss = { "oxfmt" },
         less = { "oxfmt" },
         vue = { "oxfmt" },
@@ -217,8 +139,8 @@ return {
         -- Python
         python = { "isort", "black" },
 
-        -- PHP/Laravel
-        php = { "pint" },
+        -- PHP: pint when Laravel (artisan present), php-cs-fixer otherwise
+        php = php_formatters,
         blade = { "blade-formatter" },
 
         -- Shell

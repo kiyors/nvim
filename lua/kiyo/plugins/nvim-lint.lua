@@ -4,163 +4,106 @@ return {
   event = { "BufReadPre", "BufNewFile" },
   config = function()
     local lint = require("lint")
+    local pu = require("kiyo.utils.project-utils")
 
-    -- Helper function to check if a file exists
-    local function file_exists(path)
-      local stat = vim.loop.fs_stat(path)
-      return stat and stat.type == "file"
-    end
-
-    -- Helper function to find config files in project
-    local function find_config_file(filenames, start_path)
-      start_path = start_path or vim.fn.getcwd()
-      for _, filename in ipairs(filenames) do
-        local found = vim.fs.find(filename, {
-          upward = true,
-          path = start_path,
-          limit = 1,
-        })
-        if #found > 0 then
-          return found[1]
-        end
+    -- Helper: arg that resolves at lint-time, dropped if `value_fn` returns nil
+    local function maybe_arg(value_fn)
+      return function()
+        return value_fn()
       end
-      return nil
     end
 
-    -- Get default biome config path
-    local default_biome_config = vim.fn.stdpath("config") .. "/rules/biome.jsonc"
-
-    -- Configure biome linter with project detection
-    lint.linters.biome = {
-      cmd = "biome",
-      stdin = true,
-      args = function()
-        local bufname = vim.api.nvim_buf_get_name(0)
-        local dirname = vim.fn.fnamemodify(bufname, ":h")
-
-        local args = { "lint", "--stdin-file-path", bufname }
-
-        -- Try to find project-specific biome config
-        local project_config = find_config_file({ "biome.json", "biome.jsonc" }, dirname)
-
-        if project_config then
-          table.insert(args, "--config-path=" .. vim.fn.fnamemodify(project_config, ":h"))
-        elseif file_exists(default_biome_config) then
-          table.insert(args, "--config-path=" .. vim.fn.fnamemodify(default_biome_config, ":h"))
-        end
-
-        return args
-      end,
-      stream = "both",
-      ignore_exitcode = true,
-      parser = function(output, bufnr)
-        local diagnostics = {}
-        local ok, decoded = pcall(vim.json.decode, output)
-
-        if not ok or not decoded or not decoded.diagnostics then
-          return diagnostics
-        end
-
-        for _, diagnostic in ipairs(decoded.diagnostics) do
-          if diagnostic.location then
-            table.insert(diagnostics, {
-              lnum = diagnostic.location.span.start.line - 1,
-              col = diagnostic.location.span.start.column,
-              end_lnum = diagnostic.location.span["end"].line - 1,
-              end_col = diagnostic.location.span["end"].column,
-              severity = diagnostic.severity == "error" and vim.diagnostic.severity.ERROR
-                or vim.diagnostic.severity.WARN,
-              message = diagnostic.description,
-              source = "biome",
-            })
-          end
-        end
-
-        return diagnostics
-      end,
+    -- biome: reuse built-in biomejs definition, but inject --config-path so
+    -- we pick up project config (or rules/biome.jsonc fallback).
+    local biomejs = vim.deepcopy(require("lint.linters.biomejs"))
+    biomejs.args = {
+      "lint",
+      maybe_arg(function()
+        local dir = pu.get_biome_config_dir(vim.fn.expand("%:p:h"))
+        return dir and ("--config-path=" .. dir) or nil
+      end),
     }
+    lint.linters.biome = biomejs
 
-    -- Configure statix linter for Nix
-    lint.linters.statix = {
-      cmd = "statix",
-      stdin = false,
-      args = { "check", "--format=errfmt", "--stdin" },
-      stream = "stderr",
-      ignore_exitcode = true,
-      parser = require("lint.parser").from_errorformat("%f>%l:%c:%t:%n:%m", {
-        source = "statix",
-        severity = {
-          W = vim.diagnostic.severity.WARN,
-          E = vim.diagnostic.severity.ERROR,
-          I = vim.diagnostic.severity.INFO,
-          H = vim.diagnostic.severity.HINT,
-        },
-      }),
-    }
+    -- selene: reuse built-in, inject --config when no project selene.toml
+    local selene = vim.deepcopy(require("lint.linters.selene"))
+    local original_selene_args = selene.args
+    selene.args = vim.list_extend({
+      maybe_arg(function()
+        local project = pu.find_config_file({ "selene.toml", ".selene.toml" }, vim.fn.expand("%:p:h"))
+        if project then
+          return nil -- selene auto-discovers from cwd; nothing to inject
+        end
+        local default = pu.get_default_selene_config()
+        return pu.file_exists(default) and ("--config=" .. default) or nil
+      end),
+    }, vim.deepcopy(original_selene_args))
+    lint.linters.selene = selene
 
-    -- Configure ESLint linter
-    lint.linters.eslint_d = {
-      cmd = "eslint_d",
-      stdin = true,
-      args = {
-        "--no-color",
-        "--format",
-        "json",
-        "--stdin",
-        "--stdin-filename",
-        function()
-          return vim.api.nvim_buf_get_name(0)
-        end,
-      },
-      stream = "stdout",
-      ignore_exitcode = true,
-      parser = require("lint.parser").from_errorformat("%f:%l:%c: %m", {
-        source = "eslint_d",
-      }),
-    }
+    -- ruff: inject --config when no project pyproject.toml/ruff.toml
+    local ruff = vim.deepcopy(require("lint.linters.ruff"))
+    table.insert(
+      ruff.args,
+      2,
+      maybe_arg(function()
+        local project = pu.find_config_file(
+          { "pyproject.toml", "ruff.toml", ".ruff.toml" },
+          vim.fn.expand("%:p:h")
+        )
+        if project then
+          return nil
+        end
+        local default = pu.get_default_ruff_config()
+        return pu.file_exists(default) and ("--config=" .. default) or nil
+      end)
+    )
+    lint.linters.ruff = ruff
 
-    -- Smart linter selection for JS/TS
+    -- shellcheck has no --rcfile flag, so when there's no project .shellcheckrc
+    -- we inline the rules/.shellcheckrc defaults as CLI args (CLI > rcfile).
+    local function project_has_shellcheckrc()
+      return pu.cached(0, "cached_shellcheckrc", function()
+        return pu.find_config_file({ ".shellcheckrc" }, vim.fn.expand("%:p:h")) ~= nil
+      end)
+    end
+    local function default_arg(value)
+      return maybe_arg(function()
+        return not project_has_shellcheckrc() and value or nil
+      end)
+    end
+
+    local shellcheck = vim.deepcopy(require("lint.linters.shellcheck"))
+    shellcheck.args = vim.list_extend({
+      default_arg("--external-sources"),
+      default_arg("--source-path=SCRIPTDIR"),
+      default_arg("--exclude=SC1090,SC1091"),
+    }, shellcheck.args)
+    lint.linters.shellcheck = shellcheck
+
+    -- Smart linter selection for JS/TS: ESLint (project) > biome (project or default)
     local function js_like_linters()
       local bufnr = vim.api.nvim_get_current_buf()
-      if vim.b[bufnr].cached_js_linters then
-        return vim.b[bufnr].cached_js_linters
-      end
-
-      local bufname = vim.api.nvim_buf_get_name(bufnr)
-      local dirname = vim.fn.fnamemodify(bufname, ":h")
-
-      -- Check if project has ESLint config
-      local has_eslint = find_config_file({
-        ".eslintrc",
-        ".eslintrc.js",
-        ".eslintrc.cjs",
-        ".eslintrc.json",
-        ".eslintrc.yaml",
-        ".eslintrc.yml",
-        "eslint.config.js",
-        "eslint.config.mjs",
-        "eslint.config.cjs",
-      }, dirname) ~= nil
-
-      -- Check if project has biome config
-      local has_biome = find_config_file({ "biome.json", "biome.jsonc" }, dirname) ~= nil
-
-      local result
-      -- Priority: ESLint (if configured) > Biome (project or default)
-      if has_eslint then
-        result = { "eslint_d" }
-      elseif has_biome or file_exists(default_biome_config) then
-        result = { "biome" }
-      else
-        -- Fallback to biome with default config
-        result = { "biome" }
-      end
-
-      vim.b[bufnr].cached_js_linters = result
-      return result
+      return pu.cached(bufnr, "cached_js_linters", function()
+        local dirname = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(bufnr), ":h")
+        if pu.has_eslint_config(dirname) then
+          return { "eslint_d" }
+        end
+        return { "biome" } -- biome wrapper handles project-or-default config
+      end)
     end
 
-    -- Configure linters by filetype
+    -- JSON: only lint if biome config is available (project or default)
+    local function json_linters()
+      local bufnr = vim.api.nvim_get_current_buf()
+      return pu.cached(bufnr, "cached_json_linters", function()
+        local dirname = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(bufnr), ":h")
+        if pu.has_biome_config(dirname) or pu.file_exists(pu.get_default_biome_config()) then
+          return { "biome" }
+        end
+        return {}
+      end)
+    end
+
     lint.linters_by_ft = {
       -- JavaScript/TypeScript - smart detection
       javascript = js_like_linters,
@@ -168,60 +111,26 @@ return {
       javascriptreact = js_like_linters,
       typescriptreact = js_like_linters,
 
-      -- JSON - use biome if available
-      json = function()
-        local bufnr = vim.api.nvim_get_current_buf()
-        if vim.b[bufnr].cached_json_linters then
-          return vim.b[bufnr].cached_json_linters
-        end
-        local dirname = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(bufnr), ":h")
-        local has_biome = find_config_file({ "biome.json", "biome.jsonc" }, dirname) ~= nil
-        local result = (has_biome or file_exists(default_biome_config)) and { "biome" } or {}
-        vim.b[bufnr].cached_json_linters = result
-        return result
-      end,
-      jsonc = function()
-        local bufnr = vim.api.nvim_get_current_buf()
-        if vim.b[bufnr].cached_json_linters then
-          return vim.b[bufnr].cached_json_linters
-        end
-        local dirname = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(bufnr), ":h")
-        local has_biome = find_config_file({ "biome.json", "biome.jsonc" }, dirname) ~= nil
-        local result = (has_biome or file_exists(default_biome_config)) and { "biome" } or {}
-        vim.b[bufnr].cached_json_linters = result
-        return result
-      end,
+      json = json_linters,
+      jsonc = json_linters,
 
-      -- Go
       go = { "golangcilint" },
-
-      -- Python
       python = { "ruff" },
-
-      -- rust
       rust = {},
-
-      -- Lua
       lua = { "selene" },
-
-      -- nix
       nix = { "statix" },
 
-      -- Shell
       sh = { "shellcheck" },
       bash = { "shellcheck" },
       zsh = { "shellcheck" },
 
-      -- PHP
-      php = { "pint" },
       toml = { "tombi" },
 
-      -- Terraform
       terraform = { "terraform_validate" },
       tf = { "terraform_validate" },
     }
 
-    -- Auto-lint on file events
+    -- Auto-lint on write: run the first executable linter for the filetype.
     local lint_augroup = vim.api.nvim_create_augroup("lint", { clear = true })
     vim.api.nvim_create_autocmd({ "BufWritePost" }, {
       group = lint_augroup,
@@ -229,33 +138,30 @@ return {
         local ft = vim.bo.filetype
         local linters = lint.linters_by_ft[ft]
 
-        -- Handle function-based linter selection (your JS/TS logic)
         if type(linters) == "function" then
           linters = linters()
         end
 
-        if linters and #linters > 0 then
-          for _, linter_name in ipairs(linters) do
-            local linter = lint.linters[linter_name]
+        if not linters or #linters == 0 then
+          return
+        end
 
-            if type(linter) == "function" then
-              linter = linter()
-            end
-
-            if linter then
-              local cmd = type(linter.cmd) == "function" and linter.cmd() or linter.cmd
-              if cmd and vim.fn.executable(cmd) == 1 then
-                lint.try_lint(linter_name)
-                -- We break after the first valid linter found
-                break
-              end
+        for _, linter_name in ipairs(linters) do
+          local linter = lint.linters[linter_name]
+          if type(linter) == "function" then
+            linter = linter()
+          end
+          if linter then
+            local cmd = type(linter.cmd) == "function" and linter.cmd() or linter.cmd
+            if cmd and vim.fn.executable(cmd) == 1 then
+              lint.try_lint(linter_name)
+              break
             end
           end
         end
       end,
     })
 
-    -- Keymaps
     vim.keymap.set("n", "<leader>cl", function()
       lint.try_lint()
     end, { desc = "Trigger linting for current file" })
@@ -268,7 +174,7 @@ return {
         linters = linters()
       end
 
-      if linters then
+      if linters and #linters > 0 then
         vim.notify("Linters for " .. ft .. ": " .. table.concat(linters, ", "), vim.log.levels.INFO)
       else
         vim.notify("No linters configured for " .. ft, vim.log.levels.WARN)

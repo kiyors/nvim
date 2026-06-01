@@ -34,6 +34,7 @@ vim.api.nvim_create_autocmd("ColorScheme", {
 
 local project_utils = require("kiyo.utils.project-utils")
 project_utils.setup_commands()
+project_utils.setup_cache_invalidation()
 
 -- FIXED: Project detection autocmd with proper error handling
 vim.api.nvim_create_autocmd("BufEnter", {
