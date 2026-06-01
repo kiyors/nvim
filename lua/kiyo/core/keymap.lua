@@ -141,12 +141,6 @@ keymap("n", "<BS>", "ci", "Change inside (Backspace)")
 
 keymap(
   "n",
-  "<C-f>",
-  "<cmd>silent !tmux popup -E 'sesh connect \"$(sesh list -i -H -z | fzf)\"'<CR>",
-  "Sesh zoxide picker"
-)
-keymap(
-  "n",
   "<M-f>",
   "<cmd>silent !tmux popup -E 'sesh connect \"$(sesh list -i -H -z | fzf)\"'<CR>",
   "Sesh zoxide picker"
