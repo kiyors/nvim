@@ -78,93 +78,127 @@ return {
       "laravel_ls",
     })
 
-    -- LSP Attach Configuration    -- Customize behavior when LSP attaches to a buffer
+    -- LSP Attach Configuration
     vim.api.nvim_create_autocmd("LspAttach", {
-      group = vim.api.nvim_create_augroup("UserLspConfig", {}),
-      callback = function(ev)
-        local opts = { buffer = ev.buf }
+      group = vim.api.nvim_create_augroup("UserLspConfig", { clear = true }),
+      callback = function(event)
+        local map = function(keys, func, desc)
+          vim.keymap.set("n", keys, func, { buffer = event.buf, desc = "LSP: " .. desc })
+        end
 
-        -- Get the client for this buffer
-        local client = vim.lsp.get_client_by_id(ev.data.client_id)
+        map("gl", vim.diagnostic.open_float, "Open Diagnostic Float")
+        map("<leader>d", vim.diagnostic.open_float, "Open Diagnostic Float")
+        map("K", vim.lsp.buf.hover, "Hover Documentation")
+        map("gs", vim.lsp.buf.signature_help, "Signature Documentation")
+        map("gD", vim.lsp.buf.declaration, "Goto Declaration")
+        map("gi", vim.lsp.buf.implementation, "Goto Implementation")
+        map("<leader>gt", vim.lsp.buf.type_definition, "Goto Type Definition")
+        map("[d", function()
+          vim.diagnostic.jump({ count = -1 })
+        end, "Prev Diagnostic")
+        map("]d", function()
+          vim.diagnostic.jump({ count = 1 })
+        end, "Next Diagnostic")
+
+        map(
+          "<leader>v",
+          "<cmd>vsplit | lua vim.lsp.buf.definition()<cr>",
+          "Goto Definition in Vertical Split"
+        )
+
+        local wk = require("which-key")
+        wk.add({
+          { "<leader>la", vim.lsp.buf.code_action, desc = "Code Action" },
+          {
+            "<leader>lA",
+            vim.lsp.buf.range_code_action,
+            desc = "Range Code Actions",
+          },
+          {
+            "<leader>ls",
+            vim.lsp.buf.signature_help,
+            desc = "Display Signature Information",
+          },
+          {
+            "<leader>lr",
+            vim.lsp.buf.rename,
+            desc = "Rename all references",
+          },
+          { "<leader>lf", vim.lsp.buf.format, desc = "Format" },
+          {
+            "<leader>Wa",
+            vim.lsp.buf.add_workspace_folder,
+            desc = "Workspace Add Folder",
+          },
+          {
+            "<leader>Wr",
+            vim.lsp.buf.remove_workspace_folder,
+            desc = "Workspace Remove Folder",
+          },
+          {
+            "<leader>Wl",
+            function()
+              print(vim.inspect(vim.lsp.buf.list_workspace_folders()))
+            end,
+            desc = "Workspace List Folders",
+          },
+        })
+
+        local function client_supports_method(client, method, bufnr)
+          if vim.fn.has("nvim-0.11") == 1 then
+            return client:supports_method(method, bufnr)
+          else
+            return client.supports_method(method, { bufnr = bufnr })
+          end
+        end
+
+        local client = vim.lsp.get_client_by_id(event.data.client_id)
 
         -- Disable semantic tokens for ts_ls to prevent it from overriding treesitter highlighting
         if client and client.name == "ts_ls" then
           client.server_capabilities.semanticTokensProvider = nil
         end
 
-        -- Keybindings
-        -- Note: Many of these are already default in Neovim 0.11
-        -- but we define them here for customization
-
-        -- Go to definition
-        vim.keymap.set("n", "gd", vim.lsp.buf.definition, opts)
-
-        -- Go to declaration
-        vim.keymap.set("n", "gD", vim.lsp.buf.declaration, opts)
-
-        -- Go to implementation
-        vim.keymap.set("n", "gi", vim.lsp.buf.implementation, opts)
-
-        -- Go to type definition
-        vim.keymap.set("n", "<leader>gt", vim.lsp.buf.type_definition, opts)
-
-        -- Show references
-        vim.keymap.set("n", "gr", vim.lsp.buf.references, opts)
-
-        -- Hover documentation
-        vim.keymap.set("n", "K", function()
-          vim.lsp.buf.hover({ border = "rounded" })
-        end, opts)
-
-        -- Signature help
-        vim.keymap.set("n", "<C-k>", function()
-          vim.lsp.buf.signature_help({ border = "rounded" })
-        end, opts)
-        vim.keymap.set("i", "<C-k>", function()
-          vim.lsp.buf.signature_help({ border = "rounded" })
-        end, opts)
-
-        -- Rename symbol
-        vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts)
-
-        -- Code action
-        vim.keymap.set({ "n", "v" }, "<leader>ca", vim.lsp.buf.code_action, opts)
-
-        -- Show diagnostics in floating window
-        vim.keymap.set("n", "<leader>d", function()
-          vim.diagnostic.open_float({
-            border = "rounded",
-          })
-        end, opts)
-
-        -- Go to next/previous diagnostic
-        vim.keymap.set("n", "[d", function()
-          vim.diagnostic.jump({ count = -1 })
-        end, opts)
-        vim.keymap.set("n", "]d", function()
-          vim.diagnostic.jump({ count = 1 })
-        end, opts)
-
-        -- INLAY HINTS CONFIGURATION
-        if client and client.server_capabilities.inlayHintProvider and vim.lsp.inlay_hint then
-          -- Enable inlay hints initially
-          vim.lsp.inlay_hint.enable(true, { bufnr = ev.buf })
-        end
-
-        -- Document Highlight (if supported)
-        -- Highlight symbol under cursor
-        if client and client.server_capabilities.documentHighlightProvider then
-          local highlight_augroup = vim.api.nvim_create_augroup("LspDocumentHighlight", {})
+        if
+          client
+          and client_supports_method(
+            client,
+            vim.lsp.protocol.Methods.textDocument_documentHighlight,
+            event.buf
+          )
+        then
+          local highlight_augroup = vim.api.nvim_create_augroup("lsp-highlight", { clear = false })
           vim.api.nvim_create_autocmd({ "CursorHold", "CursorHoldI" }, {
-            buffer = ev.buf,
+            buffer = event.buf,
             group = highlight_augroup,
             callback = vim.lsp.buf.document_highlight,
           })
+
           vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
-            buffer = ev.buf,
+            buffer = event.buf,
             group = highlight_augroup,
             callback = vim.lsp.buf.clear_references,
           })
+
+          vim.api.nvim_create_autocmd("LspDetach", {
+            group = vim.api.nvim_create_augroup("lsp-detach", { clear = true }),
+            callback = function(event2)
+              vim.lsp.buf.clear_references()
+              vim.api.nvim_clear_autocmds({ group = "lsp-highlight", buffer = event2.buf })
+            end,
+          })
+        end
+
+        if
+          client
+          and client_supports_method(client, vim.lsp.protocol.Methods.textDocument_inlayHint, event.buf)
+        then
+          -- Enable inlay hints initially
+          vim.lsp.inlay_hint.enable(true, { bufnr = event.buf })
+
+          map("<leader>th", function()
+            vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled({ bufnr = event.buf }))
+          end, "[T]oggle Inlay [H]ints")
         end
       end,
     })

@@ -14,13 +14,40 @@ vim.g.loaded_netrwPlugin = 1 --  disable netrw
 
 vim.opt.incsearch = true -- make search act like search in modern browsers
 vim.opt.backup = false -- creates a backup file
-vim.opt.clipboard = "unnamedplus" -- allows neovim to access the system clipboard
+
+-- Clipboard Configuration
+-- Using unnamedplus to sync with system clipboard
+-- OSC 52 is used as a fallback/primary in Tmux/SSH
+vim.opt.clipboard = "unnamedplus"
+
+-- If in Tmux or SSH, explicitly enable OSC 52
+if vim.env.TMUX or vim.env.SSH_CONNECTION then
+  vim.g.clipboard = {
+    name = "OSC 52",
+    copy = {
+      ["+"] = require("vim.ui.clipboard.osc52").copy("+"),
+      ["*"] = require("vim.ui.clipboard.osc52").copy("*"),
+    },
+    paste = {
+      ["+"] = require("vim.ui.clipboard.osc52").paste("+"),
+      ["*"] = require("vim.ui.clipboard.osc52").paste("*"),
+    },
+  }
+end
+
 vim.opt.cmdheight = 1 -- more space in the neovim command line for displaying messages
 vim.opt.completeopt = { "menu", "menuone", "noselect" } -- mostly just for cmp
 vim.opt.conceallevel = 0 -- so that `` is visible in markdown files
 vim.opt.hlsearch = true -- highlight all matches on previous search pattern
 vim.opt.ignorecase = true -- ignore case in search patterns
+
+-- Mouse Settings
 vim.opt.mouse = "a" -- allow the mouse to be used in neovim
+vim.opt.mousemodel = "extend" -- use 'extend' model for mouse selection
+vim.opt.selection = "inclusive" -- selection should be inclusive
+vim.opt.mousescroll = "ver:1,hor:1"
+vim.opt.mousemoveevent = false -- disable to reduce latency in multiplexers like Tmux
+
 vim.opt.pumheight = 10 -- pop up menu height
 vim.opt.showmode = false -- we don't need to see things like -- INSERT -- anymore
 vim.opt.showtabline = 0 -- always show tabs
@@ -40,6 +67,7 @@ vim.opt.writebackup = false -- if a file is being edited by another program (or 
 vim.opt.tabstop = 2
 vim.opt.smarttab = true
 vim.opt.shiftwidth = 2 -- the number of spaces inserted for each indentation
+vim.opt.softtabstop = 2
 vim.opt.breakindent = true -- wrap lines with indent
 vim.opt.autoindent = true
 vim.opt.expandtab = true -- convert tabs to spaces
@@ -47,8 +75,8 @@ vim.opt.expandtab = true -- convert tabs to spaces
 vim.opt.number = true -- set numbered lines
 vim.opt.relativenumber = true -- set relative numbered lines
 vim.opt.numberwidth = 1 -- set number column width to 2 {default 4}
-vim.opt.signcolumn = "yes:1" --  show the sign column, otherwise it would shift the text each time
-vim.opt.wrap = true -- display lines as one long line
+vim.opt.signcolumn = "yes" -- match nvf 'yes' instead of 'yes:1'
+vim.opt.wrap = false -- match nvf default wrap = false
 vim.opt.textwidth = 120 -- display lines as 120
 vim.opt.scroll = 10
 vim.opt.scrolloff = 8 -- Makes sure there are always eight lines of context
@@ -61,8 +89,14 @@ vim.opt.confirm = true -- confirm to save changes before exiting modified buffer
 vim.opt.winborder = "single" -- https://neovim.io/doc/user/options.html#'winborder'
 
 -- Fold
-vim.opt.foldcolumn = "1"
+vim.opt.foldcolumn = "auto:1" -- match nvf auto:1
 vim.opt.foldenable = true
 vim.opt.foldlevel = 99
 vim.opt.foldlevelstart = 99
-vim.opt.fillchars = [[eob: ,fold: ,foldopen:,foldsep: ,foldclose:]]
+vim.opt.fillchars = {
+  eob = "‿",
+  fold = " ",
+  foldopen = "▼",
+  foldsep = "⸽",
+  foldclose = "⏵",
+} -- match nvf fillchars exactly
