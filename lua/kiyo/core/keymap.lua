@@ -148,27 +148,15 @@ keymap(
 
 keymap(
   "n",
-  "<C-s>",
-  "<cmd>silent !tmux popup -E 'sesh connect \"$(sesh list -t -c | fzf)\"'<CR>",
-  "Sesh sessions picker"
-)
-keymap(
-  "n",
   "<M-s>",
   "<cmd>silent !tmux popup -E 'sesh connect \"$(sesh list -t -c | fzf)\"'<CR>",
   "Sesh sessions picker"
 )
 
-keymap("n", "<M-h>", "<cmd>silent !tmux switch-client -l<CR>", "Switch to last session")
-keymap(
-  "n",
-  "<M-t>",
-  "<cmd>silent !tmux popup -E 'sesh connect \"$(sesh list -t | fzf)\"'<CR>",
-  "Sesh tmux sessions"
-)
-keymap(
-  "n",
-  "<M-n>",
-  "<cmd>silent !tmux popup -E 'sesh connect \"$(sesh list -c | fzf)\"'<CR>",
-  "Sesh configs"
-)
+-- Disable MiddleMouse click to prevent accidental pasting
+local modes = { "n", "i", "v" }
+for _, mode in ipairs(modes) do
+  keymap(mode, "<MiddleMouse>", "<Nop>", "Disable Middle Click")
+  keymap(mode, "<2-MiddleMouse>", "<Nop>", "Disable 2-Middle Click")
+  keymap(mode, "<3-MiddleMouse>", "<Nop>", "Disable 3-Middle Click")
+end

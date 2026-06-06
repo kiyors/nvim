@@ -182,7 +182,7 @@ local live_grep_source = {
       or vim.tbl_get(merged, "grep", "modes")
       or { "plain", "regex", "fuzzy" }
 
-    local result = require("fff.grep").search(
+    local result = require("fff.picker_ui.grep_renderer").search(
       ctx.filter.search,
       0,
       opts.limit or merged.max_results,

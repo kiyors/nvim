@@ -42,11 +42,9 @@ vim.opt.hlsearch = true -- highlight all matches on previous search pattern
 vim.opt.ignorecase = true -- ignore case in search patterns
 
 -- Mouse Settings
-vim.opt.mouse = "a" -- allow the mouse to be used in neovim
-vim.opt.mousemodel = "extend" -- use 'extend' model for mouse selection
-vim.opt.selection = "inclusive" -- selection should be inclusive
+vim.opt.mouse = "a"
 vim.opt.mousescroll = "ver:1,hor:1"
-vim.opt.mousemoveevent = false -- disable to reduce latency in multiplexers like Tmux
+vim.opt.mousemoveevent = true -- enable for better mouse support, matching nvf config
 
 vim.opt.pumheight = 10 -- pop up menu height
 vim.opt.showmode = false -- we don't need to see things like -- INSERT -- anymore
@@ -68,7 +66,7 @@ vim.opt.tabstop = 2
 vim.opt.smarttab = true
 vim.opt.shiftwidth = 2 -- the number of spaces inserted for each indentation
 vim.opt.softtabstop = 2
-vim.opt.breakindent = true -- wrap lines with indent
+vim.opt.breakindent = false
 vim.opt.autoindent = true
 vim.opt.expandtab = true -- convert tabs to spaces
 
