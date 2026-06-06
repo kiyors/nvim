@@ -87,14 +87,14 @@ vim.opt.confirm = true -- confirm to save changes before exiting modified buffer
 vim.opt.winborder = "single" -- https://neovim.io/doc/user/options.html#'winborder'
 
 -- Fold
-vim.opt.foldcolumn = "auto:1" -- match nvf auto:1
+vim.opt.foldcolumn = "1" -- keep fold arrows in a stable column beside line numbers
 vim.opt.foldenable = true
 vim.opt.foldlevel = 99
 vim.opt.foldlevelstart = 99
 vim.opt.fillchars = {
   eob = "‿",
   fold = " ",
-  foldopen = "▼",
+  foldopen = "",
   foldsep = "⸽",
-  foldclose = "⏵",
-} -- match nvf fillchars exactly
+  foldclose = "",
+}

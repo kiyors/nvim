@@ -138,7 +138,14 @@ return {
     quickfile = { enabled = true },
     scope = { enabled = true },
     scroll = { enabled = true },
-    statuscolumn = { enabled = true },
+    statuscolumn = {
+      enabled = true,
+      left = { "fold" },
+      right = { "mark", "sign", "git" },
+      folds = {
+        open = true,
+      },
+    },
     words = { enabled = true },
     zen = { enabled = true },
   },
