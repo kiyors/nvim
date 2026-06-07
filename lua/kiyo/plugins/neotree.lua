@@ -5,7 +5,7 @@ return {
     "nvim-lua/plenary.nvim",
     "MunifTanjim/nui.nvim",
     "nvim-tree/nvim-web-devicons", -- optional, but recommended
-    "gaurav23617/neotree-file-nesting-config",
+    "kiyors/neotree-file-nesting-config",
   },
   ---@module 'neo-tree'
   ---@type neotree.Config
