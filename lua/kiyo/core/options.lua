@@ -16,24 +16,7 @@ vim.opt.incsearch = true -- make search act like search in modern browsers
 vim.opt.backup = false -- creates a backup file
 
 -- Clipboard Configuration
--- Using unnamedplus to sync with system clipboard
--- OSC 52 is used as a fallback/primary in Tmux/SSH
 vim.opt.clipboard = "unnamedplus"
-
--- If in Tmux or SSH, explicitly enable OSC 52
-if vim.env.TMUX or vim.env.SSH_CONNECTION then
-  vim.g.clipboard = {
-    name = "OSC 52",
-    copy = {
-      ["+"] = require("vim.ui.clipboard.osc52").copy("+"),
-      ["*"] = require("vim.ui.clipboard.osc52").copy("*"),
-    },
-    paste = {
-      ["+"] = require("vim.ui.clipboard.osc52").paste("+"),
-      ["*"] = require("vim.ui.clipboard.osc52").paste("*"),
-    },
-  }
-end
 
 vim.opt.cmdheight = 1 -- more space in the neovim command line for displaying messages
 vim.opt.completeopt = { "menu", "menuone", "noselect" } -- mostly just for cmp
