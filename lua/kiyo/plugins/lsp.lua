@@ -62,6 +62,7 @@ return {
       "pyright",
       "gopls",
       "zls",
+      "ruff",
       "nixd",
       "intelephense",
       "volar", -- Correct name for Vue/Vite
@@ -191,7 +192,11 @@ return {
 
         if
           client
-          and client_supports_method(client, vim.lsp.protocol.Methods.textDocument_inlayHint, event.buf)
+          and client_supports_method(
+            client,
+            vim.lsp.protocol.Methods.textDocument_inlayHint,
+            event.buf
+          )
         then
           -- Enable inlay hints initially
           vim.lsp.inlay_hint.enable(true, { bufnr = event.buf })

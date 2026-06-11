@@ -37,13 +37,17 @@ return {
         end
         return args
       end,
-      cwd = util.root_file(vim.list_extend(vim.deepcopy(pu.BIOME_CONFIG_FILES), { "package.json" })),
+      cwd = util.root_file(
+        vim.list_extend(vim.deepcopy(pu.BIOME_CONFIG_FILES), { "package.json" })
+      ),
     })
 
     -- prettier: only when project config exists
     local prettier_for_project = extend_formatter(require("conform.formatters.prettier"), {
       require_cwd = true,
-      cwd = util.root_file(vim.list_extend(vim.deepcopy(pu.PRETTIER_CONFIG_FILES), { "package.json" })),
+      cwd = util.root_file(
+        vim.list_extend(vim.deepcopy(pu.PRETTIER_CONFIG_FILES), { "package.json" })
+      ),
     })
 
     -- biome > prettier (only if project prettier config) > biome (default)
@@ -137,7 +141,7 @@ return {
         nix = { "nixfmt" },
 
         -- Python
-        python = { "isort", "black" },
+        python = { "ruff" },
 
         -- PHP: pint when Laravel (artisan present), php-cs-fixer otherwise
         php = php_formatters,

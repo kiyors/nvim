@@ -139,18 +139,22 @@ function M.resolve_config_path(project_files, default_path, dirname)
 end
 
 -- Per-buffer memoization with auto-invalidation on cwd/buffer-rename
--- Keys touched here are tracked so setup_cache_invalidation() can clear them.
-M._cache_keys = {}
+M._buffer_cache = {} -- bufnr -> { key -> result }
 
 function M.cached(bufnr, key, compute)
   bufnr = bufnr or vim.api.nvim_get_current_buf()
-  M._cache_keys[key] = true
-  local cached = vim.b[bufnr][key]
+
+  if not M._buffer_cache[bufnr] then
+    M._buffer_cache[bufnr] = {}
+  end
+
+  local cached = M._buffer_cache[bufnr][key]
   if cached ~= nil then
     return cached
   end
+
   local result = compute()
-  vim.b[bufnr][key] = result
+  M._buffer_cache[bufnr][key] = result
   return result
 end
 
@@ -158,12 +162,7 @@ function M.setup_cache_invalidation()
   local group = vim.api.nvim_create_augroup("project-utils-cache", { clear = true })
 
   local function clear_buf(bufnr)
-    if not vim.api.nvim_buf_is_valid(bufnr) then
-      return
-    end
-    for key in pairs(M._cache_keys) do
-      vim.b[bufnr][key] = nil
-    end
+    M._buffer_cache[bufnr] = nil
   end
 
   -- File renamed under the buffer: project context may have changed
@@ -174,13 +173,19 @@ function M.setup_cache_invalidation()
     end,
   })
 
+  -- Cleanup when buffer is wiped out
+  vim.api.nvim_create_autocmd("BufWipeout", {
+    group = group,
+    callback = function(args)
+      clear_buf(args.buf)
+    end,
+  })
+
   -- cwd changed: every buffer's project context may be different now
   vim.api.nvim_create_autocmd("DirChanged", {
     group = group,
     callback = function()
-      for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
-        clear_buf(bufnr)
-      end
+      M._buffer_cache = {}
     end,
   })
 end

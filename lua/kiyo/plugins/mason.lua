@@ -49,6 +49,7 @@ return {
       "luacheck", -- Lua linting
       "tflint",
       "pint", -- Laravel Pint for PHP (formatting & linting)
+      "ruff",
 
       -- Additional useful tools
       "delve", -- Go debugger

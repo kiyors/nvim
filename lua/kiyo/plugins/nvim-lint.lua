@@ -30,7 +30,8 @@ return {
     local original_selene_args = selene.args
     selene.args = vim.list_extend({
       maybe_arg(function()
-        local project = pu.find_config_file({ "selene.toml", ".selene.toml" }, vim.fn.expand("%:p:h"))
+        local project =
+          pu.find_config_file({ "selene.toml", ".selene.toml" }, vim.fn.expand("%:p:h"))
         if project then
           return nil -- selene auto-discovers from cwd; nothing to inject
         end
