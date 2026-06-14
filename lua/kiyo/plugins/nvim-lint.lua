@@ -105,6 +105,16 @@ return {
       end)
     end
 
+    -- sh/bash/zsh: don't lint .env files
+    local function sh_linters()
+      local bufnr = vim.api.nvim_get_current_buf()
+      local filename = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(bufnr), ":t")
+      if filename:match("^%.env") then
+        return {}
+      end
+      return { "shellcheck" }
+    end
+
     lint.linters_by_ft = {
       -- JavaScript/TypeScript - smart detection
       javascript = js_like_linters,
@@ -121,9 +131,9 @@ return {
       lua = { "selene" },
       nix = { "statix" },
 
-      sh = { "shellcheck" },
-      bash = { "shellcheck" },
-      zsh = { "shellcheck" },
+      sh = sh_linters,
+      bash = sh_linters,
+      zsh = sh_linters,
 
       toml = { "tombi" },
 
@@ -164,7 +174,16 @@ return {
     })
 
     vim.keymap.set("n", "<leader>cl", function()
-      lint.try_lint()
+      local ft = vim.bo.filetype
+      local linters = lint.linters_by_ft[ft]
+      if type(linters) == "function" then
+        linters = linters()
+      end
+      if linters and #linters > 0 then
+        lint.try_lint(linters)
+      else
+        lint.try_lint() -- fallback just in case
+      end
     end, { desc = "Trigger linting for current file" })
 
     vim.keymap.set("n", "<leader>cL", function()
