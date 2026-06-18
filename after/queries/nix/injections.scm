@@ -162,3 +162,22 @@
   (#set! injection.language "nginx")
   (#set! injection.combined)
 )
+
+; Bash for Nix derivations and shells (shellHook, preBuild, etc.)
+(binding
+  attrpath: (attrpath) @_attribute
+  expression: (indented_string_expression
+                (string_fragment) @injection.content)
+  (#match? @_attribute "(^|\\.)(shellHook|(pre|post)?(Hook|Patch|Configure|Build|Check|Install|Fixup|InstallCheck|Start|Stop)|(patch|configure|build|check|install|fixup|installCheck)Phase|script)$")
+  (#set! injection.language "bash")
+  (#set! injection.combined)
+)
+
+(binding
+  attrpath: (attrpath) @_attribute
+  expression: (string_expression
+                (string_fragment) @injection.content)
+  (#match? @_attribute "(^|\\.)(shellHook|(pre|post)?(Hook|Patch|Configure|Build|Check|Install|Fixup|InstallCheck|Start|Stop)|(patch|configure|build|check|install|fixup|installCheck)Phase|script)$")
+  (#set! injection.language "bash")
+  (#set! injection.combined)
+)
