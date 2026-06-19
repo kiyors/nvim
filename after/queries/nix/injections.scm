@@ -166,18 +166,24 @@
 ; Bash for Nix derivations and shells (shellHook, preBuild, etc.)
 (binding
   attrpath: (attrpath) @_attribute
-  expression: (indented_string_expression
-                (string_fragment) @injection.content)
-  (#match? @_attribute "(^|\\.)(shellHook|(pre|post)?(Hook|Patch|Configure|Build|Check|Install|Fixup|InstallCheck|Start|Stop)|(patch|configure|build|check|install|fixup|installCheck)Phase|script)$")
+  expression: [
+    (indented_string_expression (string_fragment) @injection.content)
+    (string_expression (string_fragment) @injection.content)
+    (apply_expression argument: (indented_string_expression (string_fragment) @injection.content))
+    (apply_expression argument: (string_expression (string_fragment) @injection.content))
+  ]
+  (#match? @_attribute "(^|\\.)(shellHook|(pre|post)?(Hook|Patch|Configure|Build|Check|Install|Fixup|InstallCheck|Start|Stop)|(patch|configure|build|check|install|fixup|installCheck)Phase|script|activationScript)$")
   (#set! injection.language "bash")
   (#set! injection.combined)
 )
 
+; Home Manager Activation Scripts
 (binding
-  attrpath: (attrpath) @_attribute
-  expression: (string_expression
-                (string_fragment) @injection.content)
-  (#match? @_attribute "(^|\\.)(shellHook|(pre|post)?(Hook|Patch|Configure|Build|Check|Install|Fixup|InstallCheck|Start|Stop)|(patch|configure|build|check|install|fixup|installCheck)Phase|script)$")
+  attrpath: (_) @_path (#hmts-path? @_path "home" "activation" ".*")
+  expression: [
+    (_ (string_fragment) @injection.content)
+    (apply_expression argument: (_ (string_fragment) @injection.content))
+  ]
   (#set! injection.language "bash")
   (#set! injection.combined)
 )
@@ -185,7 +191,10 @@
 ; Nushell
 (binding
   attrpath: (_) @_path (#hmts-path? @_path "programs" "nushell" "(extraEnv|extraConfig|extraLogin)$")
-  expression: (_ (string_fragment) @injection.content)
+  expression: [
+    (_ (string_fragment) @injection.content)
+    (apply_expression argument: (_ (string_fragment) @injection.content))
+  ]
   (#set! injection.language "nu")
   (#set! injection.combined)
 )
