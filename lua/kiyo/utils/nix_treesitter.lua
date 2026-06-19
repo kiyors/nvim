@@ -87,9 +87,11 @@ local function get_text_from_path_node(node, bufnr)
   if node:type() == "identifier" then
     return vim.treesitter.get_node_text(node, bufnr)
   elseif node:type() == "string_expression" then
-    local child = node:child(0)
-    if child then
-      return vim.treesitter.get_node_text(child, bufnr)
+    for i = 0, node:named_child_count() - 1 do
+      local child = node:named_child(i)
+      if child:type() == "string_fragment" then
+        return vim.treesitter.get_node_text(child, bufnr)
+      end
     end
   end
 
@@ -121,35 +123,40 @@ end
 ---@param bufnr integer
 ---@return string|nil
 local function find_filename_in_parent_node(path_node, bufnr)
-  if not path_node or not path_node.parent then
-    return nil
-  end
-  local text = vim.treesitter.get_node_text(path_node, bufnr)
-  local _, _, filename = string.find(text, "(.*)%.text$")
-
-  if filename == nil then
+  if not path_node then
     return nil
   end
 
-  filename = string.sub(filename, 2, -2)
-
-  if filename ~= nil then
-    return filename
-  end
-
-  local parent = path_node:parent()
-  while parent do
-    if parent:type() == "binding" then
-      local attrpath = parent:field("attrpath")[1]
-      if attrpath then
-        return get_text_from_path_node(attrpath, bufnr)
+  local attrs
+  if path_node:type() == "attrpath" then
+    attrs = path_node:field("attr")
+  else
+    local parent = path_node:parent()
+    while parent do
+      if parent:type() == "binding" then
+        local attrpath = parent:field("attrpath")[1]
+        if attrpath then
+          attrs = attrpath:field("attr")
+          break
+        end
       end
+      if not parent.parent then
+        break
+      end
+      parent = parent:parent()
     end
-    if not parent.parent then
-      break
-    end
-    parent = parent:parent()
   end
+
+  if not attrs or #attrs < 2 then
+    return nil
+  end
+
+  local last_attr = get_text_from_path_node(attrs[#attrs], bufnr)
+  if last_attr ~= "text" then
+    return nil
+  end
+
+  return get_text_from_path_node(attrs[#attrs - 1], bufnr)
 end
 
 --- Checks if the given capture is located at the end of the given nix path.
