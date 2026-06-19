@@ -259,3 +259,14 @@
   (#set! injection.language "lua")
   (#set! injection.combined)
 )
+
+; xarchiverrc (INI format)
+(binding
+  attrpath: (_) @_path (#hmts-path? @_path "(home|xdg)" "(file|configFile)" ".*xarchiverrc$" "text")
+  expression: [
+    (_ (string_fragment) @injection.content)
+    (apply_expression argument: (_ (string_fragment) @injection.content))
+  ]
+  (#set! injection.language "ini")
+  (#set! injection.combined)
+)
