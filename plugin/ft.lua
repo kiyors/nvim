@@ -26,5 +26,6 @@ vim.filetype.add({
     ["%.env%.[%w_.-]+"] = "sh",
     [".*%.env$"] = "sh",
     [".*%.envrc$"] = "sh",
+    [".*/ghostty/.*"] = "ghostty",
   },
 })
