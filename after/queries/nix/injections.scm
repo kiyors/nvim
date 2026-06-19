@@ -181,3 +181,11 @@
   (#set! injection.language "bash")
   (#set! injection.combined)
 )
+
+; Nushell
+(binding
+  attrpath: (_) @_path (#hmts-path? @_path "programs" "nushell" "(extraEnv|extraConfig|extraLogin)$")
+  expression: (_ (string_fragment) @injection.content)
+  (#set! injection.language "nu")
+  (#set! injection.combined)
+)
