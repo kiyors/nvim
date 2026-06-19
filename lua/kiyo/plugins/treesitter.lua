@@ -61,6 +61,7 @@ return {
         "gitcommit",
         "hyprlang",
         "regex",
+        "ini",
       }
 
       -- Conditionally add parsers based on system executables
@@ -119,6 +120,7 @@ return {
 
       -- Register filetypes to their respective treesitter parsers
       vim.treesitter.language.register("bash", "kitty")
+      vim.treesitter.language.register("ini", "ghostty")
       vim.treesitter.language.register("tsx", "javascriptreact")
       vim.treesitter.language.register("tsx", "typescriptreact")
 

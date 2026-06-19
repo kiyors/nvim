@@ -278,6 +278,6 @@
     (_ (string_fragment) @injection.content)
     (apply_expression argument: (_ (string_fragment) @injection.content))
   ]
-  (#set! injection.language "ghostty")
+  (#set! injection.language "ini")
   (#set! injection.combined)
 )
