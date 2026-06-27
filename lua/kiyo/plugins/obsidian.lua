@@ -14,10 +14,10 @@ return {
       },
     },
     daily_notes = {
-      folder = "Daily",
-      date_format = "%Y/%V/%Y-%m-%d",
+      folder = "daily-note",
+      date_format = "%Y-%m-%d-%A",
       alias_format = "%a %-d %B %Y",
-      template = "daily.md",
+      template = "daily note.md",
       workdays_only = false,
     },
     completion = {
@@ -145,6 +145,12 @@ return {
           "<cmd>ObsidianPasteImg<cr>",
           vim.tbl_extend("force", map_opts, { desc = "Paste clipboard image" })
         )
+        vim.keymap.set(
+          "n",
+          "<localleader>r",
+          "<cmd>ObsidianRename<cr>",
+          vim.tbl_extend("force", map_opts, { desc = "Rename Note" })
+        )
       end,
     },
 
@@ -165,7 +171,7 @@ return {
       separator = string.rep("-", 80),
     },
     checkbox = {
-      order = { " ", "x" },
+      order = { " ", "x", ">", "-", "/" },
     },
     legacy_commands = false,
   },
