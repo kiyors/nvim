@@ -129,6 +129,7 @@ return {
       python = { "ruff" },
       rust = {},
       lua = { "selene" },
+      astro = { "oxlint" },
       nix = { "statix" },
 
       sh = sh_linters,

@@ -59,6 +59,7 @@ return {
       "emmet_language_server",
       "eslint",
       "lua_ls",
+      "astro",
       "pyright",
       "gopls",
       "zls",

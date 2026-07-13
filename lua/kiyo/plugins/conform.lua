@@ -134,6 +134,9 @@ return {
         -- Lua
         lua = { "stylua" },
 
+        -- Astro
+        astro = {},
+
         -- Toml
         toml = { "taplo" },
 

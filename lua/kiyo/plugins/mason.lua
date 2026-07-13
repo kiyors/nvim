@@ -13,6 +13,7 @@ return {
       "lua-language-server", -- Lua LSP
       "gopls", -- Go LSP
       "zls", -- Zig LSP
+      "astro-language-server",
       "typescript-language-server", -- TypeScript LSP
       "intelephense", -- PHP LSP
       "python-lsp-server", -- Python LSP
@@ -46,6 +47,7 @@ return {
       -- Linters and diagnostics
       "golangci-lint",
       "eslint_d",
+      "oxlint",
       "luacheck", -- Lua linting
       "tflint",
       "pint", -- Laravel Pint for PHP (formatting & linting)
