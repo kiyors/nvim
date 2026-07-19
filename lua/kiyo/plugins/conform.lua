@@ -50,7 +50,7 @@ return {
       ),
     })
 
-    -- biome > prettier (only if project prettier config) > biome (default)
+    -- oxfmt > biome > prettier (only if project prettier config) > biome (default)
     local function js_like_formatters(bufnr)
       bufnr = bufnr or vim.api.nvim_get_current_buf()
 
@@ -64,7 +64,9 @@ return {
 
       return pu.cached(bufnr, "cached_js_formatters", function()
         local dirname = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(bufnr), ":h")
-        if pu.has_biome_config(dirname) then
+        if pu.has_oxfmt_config(dirname) then
+          return { "oxfmt" }
+        elseif pu.has_biome_config(dirname) then
           return { "biome_for_project" }
         elseif pu.has_prettier_config(dirname) then
           return { "prettier_for_project" }
@@ -78,11 +80,24 @@ return {
       bufnr = bufnr or vim.api.nvim_get_current_buf()
       return pu.cached(bufnr, "cached_json_formatters", function()
         local dirname = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(bufnr), ":h")
-        if pu.has_biome_config(dirname) then
+        if pu.has_oxfmt_config(dirname) then
+          return { "oxfmt" }
+        elseif pu.has_biome_config(dirname) then
           return { "biome_for_project" }
         end
         -- stop_after_first: try project prettier first, then biome with default config
         return { "prettier_for_project", "biome_for_project", stop_after_first = true }
+      end)
+    end
+
+    local function core_web_formatters(bufnr)
+      bufnr = bufnr or vim.api.nvim_get_current_buf()
+      return pu.cached(bufnr, "cached_core_web_formatters", function()
+        local dirname = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(bufnr), ":h")
+        if pu.has_oxfmt_config(dirname) then
+          return { "oxfmt" }
+        end
+        return { "biome_for_project" }
       end)
     end
 
@@ -112,9 +127,9 @@ return {
         json = json_formatters,
         jsonc = json_formatters,
 
-        -- Core Web (Biome with default config fallback)
-        html = { "biome_for_project" },
-        css = { "biome_for_project" },
+        -- Core Web (Prefer oxfmt if configured, else Biome with default config fallback)
+        html = core_web_formatters,
+        css = core_web_formatters,
 
         -- Data, Docs, and Content
         markdown = { "oxfmt" },

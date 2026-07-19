@@ -81,12 +81,14 @@ return {
     }, shellcheck.args)
     lint.linters.shellcheck = shellcheck
 
-    -- Smart linter selection for JS/TS: ESLint (project) > biome (project or default)
+    -- Smart linter selection for JS/TS: oxlint (project) > ESLint (project) > biome (project or default)
     local function js_like_linters()
       local bufnr = vim.api.nvim_get_current_buf()
       return pu.cached(bufnr, "cached_js_linters", function()
         local dirname = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(bufnr), ":h")
-        if pu.has_eslint_config(dirname) then
+        if pu.has_oxlint_config(dirname) then
+          return { "oxlint" }
+        elseif pu.has_eslint_config(dirname) then
           return { "eslint_d" }
         end
         return { "biome" } -- biome wrapper handles project-or-default config
@@ -98,7 +100,9 @@ return {
       local bufnr = vim.api.nvim_get_current_buf()
       return pu.cached(bufnr, "cached_json_linters", function()
         local dirname = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(bufnr), ":h")
-        if pu.has_biome_config(dirname) or pu.file_exists(pu.get_default_biome_config()) then
+        if pu.has_oxlint_config(dirname) then
+          return {} -- oxlint doesn't heavily lint JSON yet, skip biome
+        elseif pu.has_biome_config(dirname) or pu.file_exists(pu.get_default_biome_config()) then
           return { "biome" }
         end
         return {}

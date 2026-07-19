@@ -47,14 +47,26 @@ return {
       },
     })
 
+    -- Configure Astro LSP to use the fallback TypeScript 6 package
+    -- because Astro LSP (Volar) does not yet support the TS 7 Go rewrite.
+    vim.lsp.config.astro = {
+      init_options = {
+        typescript = {
+          tsdk = vim.fn.getcwd() .. "/node_modules/@typescript/typescript6/lib",
+        },
+      },
+    }
+
     -- Enable LSP Servers (Native Neovim 0.11+ API)
     -- This is the safest way to ensure your specific servers are loaded.
     -- Note: rust_analyzer is EXCLUDED because it's handled by rustaceanvim.
     vim.lsp.enable({
-      "ts_ls",
+      "tsgo",
       "html",
       "cssls",
       "biome",
+      "oxfmt",
+      "oxlint",
       "tailwindcss",
       "emmet_language_server",
       "eslint",
@@ -156,8 +168,8 @@ return {
 
         local client = vim.lsp.get_client_by_id(event.data.client_id)
 
-        -- Disable semantic tokens for ts_ls to prevent it from overriding treesitter highlighting
-        if client and client.name == "ts_ls" then
+        -- Disable semantic tokens for tsgo to prevent it from overriding treesitter highlighting
+        if client and client.name == "tsgo" then
           client.server_capabilities.semanticTokensProvider = nil
         end
 

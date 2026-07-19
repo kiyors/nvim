@@ -82,6 +82,21 @@ M.PRETTIER_CONFIG_FILES = {
   "prettier.config.mjs",
 }
 
+-- Oxc (oxlint/oxfmt) config files
+M.OXLINT_CONFIG_FILES = {
+  ".oxlintrc.json",
+  ".oxlintrc.jsonc",
+  "oxlint.config.ts",
+  "oxlint.config.mts",
+  "oxlint.json", -- fallback/legacy
+  ".oxlintrc", -- fallback/legacy
+}
+M.OXFMT_CONFIG_FILES = {
+  ".oxfmtrc.json",
+  ".oxfmtrc.jsonc",
+  "oxfmt.json", -- fallback/legacy
+  ".oxfmt.json", -- fallback/legacy
+}
 -- Check if project has biome config
 function M.has_biome_config(dirname)
   dirname = dirname or vim.fn.getcwd()
@@ -98,6 +113,18 @@ end
 function M.has_prettier_config(dirname)
   dirname = dirname or vim.fn.getcwd()
   return M.find_config_file(M.PRETTIER_CONFIG_FILES, dirname) ~= nil
+end
+
+-- Check if project has oxlint config
+function M.has_oxlint_config(dirname)
+  dirname = dirname or vim.fn.getcwd()
+  return M.find_config_file(M.OXLINT_CONFIG_FILES, dirname) ~= nil
+end
+
+-- Check if project has oxfmt config (or fallback to oxlint config as indicator of Oxc project)
+function M.has_oxfmt_config(dirname)
+  dirname = dirname or vim.fn.getcwd()
+  return M.find_config_file(M.OXFMT_CONFIG_FILES, dirname) ~= nil or M.has_oxlint_config(dirname)
 end
 
 -- Get biome config path (project or default)
@@ -194,8 +221,10 @@ end
 function M.detect_js_formatter(dirname)
   dirname = dirname or vim.fn.expand("%:p:h")
 
-  -- Priority: biome > prettier
-  if M.has_biome_config(dirname) then
+  -- Priority: oxfmt > biome > prettier
+  if M.has_oxfmt_config(dirname) then
+    return "oxfmt"
+  elseif M.has_biome_config(dirname) then
     return "biome"
   elseif M.has_prettier_config(dirname) then
     return "prettier"
@@ -209,8 +238,10 @@ end
 function M.detect_js_linter(dirname)
   dirname = dirname or vim.fn.expand("%:p:h")
 
-  -- Priority: eslint > biome
-  if M.has_eslint_config(dirname) then
+  -- Priority: oxlint > eslint > biome
+  if M.has_oxlint_config(dirname) then
+    return "oxlint"
+  elseif M.has_eslint_config(dirname) then
     return "eslint"
   else
     return "biome"
@@ -227,10 +258,12 @@ function M.setup_commands()
       "Current directory: " .. dirname,
       "",
       "Formatter configs found:",
+      "  Oxfmt: " .. (M.has_oxfmt_config(dirname) and "✓" or "✗"),
       "  Biome: " .. (M.has_biome_config(dirname) and "✓" or "✗"),
       "  Prettier: " .. (M.has_prettier_config(dirname) and "✓" or "✗"),
       "",
       "Linter configs found:",
+      "  Oxlint: " .. (M.has_oxlint_config(dirname) and "✓" or "✗"),
       "  ESLint: " .. (M.has_eslint_config(dirname) and "✓" or "✗"),
       "  Biome: " .. (M.has_biome_config(dirname) and "✓" or "✗"),
       "",

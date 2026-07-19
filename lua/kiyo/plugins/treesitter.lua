@@ -16,6 +16,7 @@ return {
         "json",
         "javascript",
         "typescript",
+        "astro",
         "tsx",
         "jsx",
         "go",

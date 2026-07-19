@@ -14,7 +14,8 @@ return {
       "gopls", -- Go LSP
       "zls", -- Zig LSP
       "astro-language-server",
-      "typescript-language-server", -- TypeScript LSP
+      "tsgo",
+      "deno",
       "intelephense", -- PHP LSP
       "python-lsp-server", -- Python LSP
       "tailwindcss-language-server", -- Tailwind CSS LSP

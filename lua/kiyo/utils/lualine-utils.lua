@@ -64,6 +64,7 @@ function M.get_lsp_clients()
   local buf_clients = vim.lsp.get_clients({ bufnr = 0 })
   local exclude_list = { "null-ls", "copilot", "GitHub Copilot" }
   local clients = {}
+  local unique_clients = {}
 
   for _, client in pairs(buf_clients) do
     local should_exclude = false
@@ -74,7 +75,8 @@ function M.get_lsp_clients()
       end
     end
 
-    if not should_exclude then
+    if not should_exclude and not unique_clients[client.name] then
+      unique_clients[client.name] = true
       table.insert(clients, client.name)
     end
   end
@@ -108,9 +110,11 @@ function M.get_linters()
 
   -- Normalize to table and extract linter names
   local linters = {}
+  local unique_linters = {}
   if type(configured_linters) == "table" then
     for _, linter in ipairs(configured_linters) do
-      if type(linter) == "string" then
+      if type(linter) == "string" and not unique_linters[linter] then
+        unique_linters[linter] = true
         table.insert(linters, linter)
       end
     end
@@ -147,12 +151,16 @@ function M.get_formatters()
 
   -- Normalize to table and extract formatter names
   local formatters = {}
+  local unique_formatters = {}
   if type(configured_formatters) == "table" then
     for _, formatter in ipairs(configured_formatters) do
       if type(formatter) == "string" then
         -- Clean up formatter names (remove _for_project suffix)
         local clean_name = formatter:gsub("_for_project$", "")
-        table.insert(formatters, clean_name)
+        if not unique_formatters[clean_name] then
+          unique_formatters[clean_name] = true
+          table.insert(formatters, clean_name)
+        end
       end
     end
   end
