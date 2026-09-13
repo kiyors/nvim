@@ -61,7 +61,8 @@ return {
     -- This is the safest way to ensure your specific servers are loaded.
     -- Note: rust_analyzer is EXCLUDED because it's handled by rustaceanvim.
     vim.lsp.enable({
-      "tsgo",
+      "tsc",
+      "ts_ls",
       "html",
       "cssls",
       "biome",

@@ -223,10 +223,92 @@ function M.hmts_inject_handler(match, _, bufnr, predicate, metadata)
   end
 end
 
+--- Detects language of an embedded script (from shebang, file redirect, or heredoc delimiter)
+---@param match table<number, any>
+---@param _ any
+---@param bufnr integer
+---@param predicate any[]
+---@param metadata table<string, string>
+function M.shebang_inject_handler(match, _, bufnr, predicate, metadata)
+  local node_id = predicate[2]
+  local node = get_node(match, node_id)
+  if not node then
+    return
+  end
+
+  local text = vim.treesitter.get_node_text(node, bufnr)
+  local lang = nil
+
+  -- 1. Check for shebang in the text content
+  local shebang = text:match("^%s*#![^\r\n]+")
+  if shebang then
+    local interp = shebang:match("env%s+%-%S+%s+([%w_%-]+)")
+      or shebang:match("env%s+([%w_%-]+)")
+      or shebang:match("/([%w_%-]+)%s*$")
+    if interp then
+      lang = interp
+    end
+  end
+
+  -- 2. Check parent/sibling file_redirect (e.g. cat << 'EOF' > $out/bin/tinycast)
+  if not lang then
+    local parent = node:parent()
+    if parent and parent:type() == "heredoc_redirect" then
+      for child in parent:iter_children() do
+        if child:type() == "file_redirect" then
+          local redirect_text = vim.treesitter.get_node_text(child, bufnr):gsub("^[>%s]+", "")
+          local filename = redirect_text:match("([^/]+)$") or redirect_text
+          local alias = vim.filetype.match({ filename = filename })
+          if alias then
+            lang = vim.treesitter.language.get_lang(alias) or alias
+          elseif redirect_text:match("/bin/") then
+            lang = "bash"
+          end
+          break
+        end
+      end
+    end
+  end
+
+  -- 3. Check heredoc delimiter (e.g. << 'BASH' or << 'SH')
+  if not lang then
+    local parent = node:parent()
+    if parent and parent:type() == "heredoc_redirect" then
+      for child in parent:iter_children() do
+        if child:type() == "heredoc_end" or child:type() == "heredoc_start" then
+          local delim = vim.treesitter.get_node_text(child, bufnr):gsub("['\"]", ""):lower()
+          if delim == "bash" or delim == "sh" or delim == "zsh" then
+            lang = "bash"
+            break
+          elseif delim == "python" or delim == "py" then
+            lang = "python"
+            break
+          elseif delim == "lua" then
+            lang = "lua"
+            break
+          end
+        end
+      end
+    end
+  end
+
+  if lang then
+    local ts_lang = vim.treesitter.language.get_lang(lang) or lang
+    if ts_lang == "sh" then
+      ts_lang = "bash"
+    elseif ts_lang == "python3" then
+      ts_lang = "python"
+    end
+    metadata["injection.language"] = ts_lang
+    metadata["injection.include-children"] = true
+  end
+end
+
 function M.setup()
   local opts = vim.fn.has("nvim-0.10") == 1 and { force = true, all = false } or true
   vim.treesitter.query.add_predicate("hmts-path?", M.hmts_path_handler, opts)
   vim.treesitter.query.add_directive("hmts-inject!", M.hmts_inject_handler, opts)
+  vim.treesitter.query.add_directive("shebang-inject!", M.shebang_inject_handler, opts)
 end
 
 return M

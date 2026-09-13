@@ -51,6 +51,7 @@ return {
         "editorconfig",
         "ssh_config",
         "rust",
+        "wgsl",
         "ron",
         "diff",
         "terraform",
