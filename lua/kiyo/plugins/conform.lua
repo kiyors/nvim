@@ -172,6 +172,9 @@ return {
         -- Rust
         rust = { "rustfmt" },
 
+        -- Kotlin
+        kotlin = { "ktlint" },
+
         -- Terraform
         hcl = { "packer_fmt" },
         terraform = { "terraform_fmt" },

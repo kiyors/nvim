@@ -37,6 +37,7 @@ return {
       "tombi",
       "taplo",
       "codelldb",
+      "kotlin-language-server", -- Kotlin LSP
 
       -- Formatters (for conform.nvim and general use)
       "stylua",
@@ -45,6 +46,7 @@ return {
       "prettier",
       "blade-formatter",
       "oxfmt",
+      "ktlint", -- Kotlin formatter & linter
 
       -- Linters and diagnostics
       "golangci-lint",

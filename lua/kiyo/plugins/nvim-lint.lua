@@ -133,6 +133,7 @@ return {
       python = { "ruff" },
       rust = {},
       lua = { "selene" },
+      kotlin = { "ktlint" },
       astro = { "oxlint" },
       nix = { "statix" },
 

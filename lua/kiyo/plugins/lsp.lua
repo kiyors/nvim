@@ -91,6 +91,7 @@ return {
       "markdown_oxide",
       "phpactor",
       "laravel_ls",
+      "kotlin_language_server",
     })
 
     -- LSP Attach Configuration
