@@ -88,6 +88,30 @@ return {
       treesitter_context = true,
       which_key = true,
     },
+    custom_highlights = function(colors)
+      local utils = require("catppuccin.utils.colors")
+      -- Soft, readable diff backgrounds (blend with base for theme-adaptive tints)
+      local add_bg = utils.blend(colors.green, colors.base, 0.20)
+      local del_bg = utils.blend(colors.red, colors.base, 0.20)
+      local change_bg = utils.blend(colors.blue, colors.base, 0.20)
+      local hunk_bg = utils.blend(colors.sapphire, colors.base, 0.16)
+
+      return {
+        -- Tree-sitter diff highlights
+        ["@diff.plus"] = { fg = colors.green, bg = add_bg },
+        ["@diff.minus"] = { fg = colors.red, bg = del_bg },
+        ["@diff.delta"] = { fg = colors.yellow, bg = change_bg },
+        ["@diff.plus.sign"] = { fg = colors.green, bg = add_bg, style = { "bold" } },
+        ["@diff.minus.sign"] = { fg = colors.red, bg = del_bg, style = { "bold" } },
+        ["@diff.location"] = { fg = colors.sapphire, bg = hunk_bg, style = { "bold" } },
+
+        -- Classic Vim diff highlights
+        ["DiffAdd"] = { bg = add_bg },
+        ["DiffDelete"] = { bg = del_bg, fg = colors.red },
+        ["DiffChange"] = { bg = change_bg },
+        ["DiffText"] = { bg = utils.blend(colors.blue, colors.base, 0.35), style = { "bold" } },
+      }
+    end,
     -- custom_highlights = function(colors)
     --   return {
     --     ["Boolean"] = { style = { "italic" } },

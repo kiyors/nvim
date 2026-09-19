@@ -64,6 +64,22 @@ return {
         "hyprlang",
         "regex",
         "ini",
+        "zig",
+        "vue",
+        "gomod",
+        "gosum",
+        "gowork",
+        "scss",
+        "json5",
+        "xml",
+        "make",
+        "cmake",
+        "proto",
+        "cuda",
+        "c_sharp",
+        "ruby",
+        "swift",
+        "objc",
       }
 
       -- Conditionally add parsers based on system executables
@@ -125,6 +141,9 @@ return {
       vim.treesitter.language.register("ini", "ghostty")
       vim.treesitter.language.register("tsx", "javascriptreact")
       vim.treesitter.language.register("tsx", "typescriptreact")
+      vim.treesitter.language.register("terraform", "opentofu")
+      vim.treesitter.language.register("terraform", "tf")
+      vim.treesitter.language.register("yaml", "dockercompose")
 
       -- Force start Treesitter and enable folding
       vim.api.nvim_create_autocmd({ "FileType", "BufReadPost" }, {

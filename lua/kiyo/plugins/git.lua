@@ -155,6 +155,20 @@ return {
         end,
         desc = "Git Diff HEAD",
       },
+      {
+        "<leader>Gw",
+        function()
+          require("gitsigns").toggle_word_diff()
+        end,
+        desc = "Toggle Word Diff (Inline)",
+      },
+      {
+        "<leader>GL",
+        function()
+          require("gitsigns").toggle_linehl()
+        end,
+        desc = "Toggle Line Highlight",
+      },
     },
   },
   -- Git related plugins
@@ -162,6 +176,11 @@ return {
     "sindrets/diffview.nvim",
     cmd = {
       "DiffviewOpen",
+      "DiffviewClose",
+      "DiffviewToggleFiles",
+      "DiffviewFocusFiles",
+      "DiffviewRefresh",
+      "DiffviewFileHistory",
     },
     dependencies = {
       "nvim-lua/plenary.nvim",
@@ -169,6 +188,9 @@ return {
     keys = {
       { "<leader>gv", "<cmd>DiffviewOpen<cr>", desc = "Open DiffView for git" },
       { "<leader>gc", "<cmd>DiffviewClose<cr>", desc = "Close DiffView for git" },
+      { "<leader>gh", "<cmd>DiffviewFileHistory %<cr>", desc = "Diffview: File History (Current)" },
+      { "<leader>gH", "<cmd>DiffviewFileHistory<cr>", desc = "Diffview: Branch History" },
+      { "<leader>gt", "<cmd>DiffviewToggleFiles<cr>", desc = "Diffview: Toggle Files Panel" },
     },
   },
   {

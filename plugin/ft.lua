@@ -7,6 +7,7 @@ vim.filetype.add({
     rofi = "rasi",
     wofi = "rasi",
     tf = "terraform",
+    tofu = "terraform",
     patch = "diff",
     diff = "diff",
   },

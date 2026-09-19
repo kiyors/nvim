@@ -44,6 +44,10 @@ vim.opt.undofile = true -- enable persistent undo
 vim.opt.updatetime = 100 -- faster completion (4000ms default)
 vim.opt.writebackup = false -- if a file is being edited by another program (or was written to file while editing with another program), it is not allowed to be edited
 
+-- Diff options (Histogram algorithm + linematch alignment for superior diffs)
+vim.opt.diffopt =
+  { "internal", "filler", "closeoff", "indent-heuristic", "linematch:60", "algorithm:histogram" }
+
 -- Tab, Indent
 vim.opt.tabstop = 2
 vim.opt.smarttab = true
