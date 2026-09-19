@@ -3,14 +3,14 @@ return {
     "nvim-treesitter/nvim-treesitter",
     event = { "BufReadPost", "BufNewFile", "VeryLazy" },
     cmd = { "TSUpdate", "TSInstall", "TSModuleInfo", "TSBufEnable", "TSBufDisable" },
-    dependencies = { "davidmh/mdx.nvim" },
     build = ":TSUpdate",
     branch = "main",
     main = "nvim-treesitter",
     init = function()
       -- Register custom predicates and directives for Nix injections (hmts replacement)
       require("kiyo.utils.nix_treesitter").setup()
-
+    end,
+    config = function()
       -- Define parsers to install
       local parsers_to_ensure = {
         "json",
@@ -80,6 +80,8 @@ return {
         "ruby",
         "swift",
         "objc",
+        "latex",
+        "typst",
       }
 
       -- Conditionally add parsers based on system executables
@@ -107,13 +109,6 @@ return {
         end
       end
 
-      -- Store parsers_to_ensure in a global or module so the config block can access it
-      _G.kiyo_treesitter_parsers = parsers_to_ensure
-    end,
-    config = function()
-      local parsers_to_ensure = _G.kiyo_treesitter_parsers or {}
-      _G.kiyo_treesitter_parsers = nil -- Clean up
-
       -- Setup nvim-treesitter (v1.0.0+ API)
       require("nvim-treesitter").setup({
         ensure_installed = parsers_to_ensure,
@@ -136,31 +131,17 @@ return {
         },
       })
 
-      -- Register filetypes to their respective treesitter parsers
-      vim.treesitter.language.register("bash", "kitty")
-      vim.treesitter.language.register("ini", "ghostty")
-      vim.treesitter.language.register("tsx", "javascriptreact")
-      vim.treesitter.language.register("tsx", "typescriptreact")
-      vim.treesitter.language.register("terraform", "opentofu")
-      vim.treesitter.language.register("terraform", "tf")
-      vim.treesitter.language.register("yaml", "dockercompose")
-
-      -- Force start Treesitter and enable folding
-      vim.api.nvim_create_autocmd({ "FileType", "BufReadPost" }, {
-        callback = function()
-          local buf = vim.api.nvim_get_current_buf()
-          local lang = vim.treesitter.language.get_lang(vim.bo[buf].filetype)
-            or vim.bo[buf].filetype
-
-          -- Try to start Treesitter highlighting
-          local start_ok, _ = pcall(vim.treesitter.start, buf, lang)
-          if start_ok then
-            -- Standard treesitter integrations
-            vim.wo.foldmethod = "expr"
-            vim.wo.foldexpr = "v:lua.vim.treesitter.foldexpr()"
-          end
-        end,
-      })
+      -- Start treesitter on the current buffer if already open
+      local current_buf = vim.api.nvim_get_current_buf()
+      if vim.api.nvim_buf_is_valid(current_buf) and vim.bo[current_buf].filetype ~= "" then
+        local lang = vim.treesitter.language.get_lang(vim.bo[current_buf].filetype)
+          or vim.bo[current_buf].filetype
+        local started = pcall(vim.treesitter.start, current_buf, lang)
+        if started then
+          vim.wo.foldmethod = "expr"
+          vim.wo.foldexpr = "v:lua.vim.treesitter.foldexpr()"
+        end
+      end
     end,
   },
 
@@ -222,5 +203,9 @@ return {
         },
       }
     end,
+  },
+  {
+    "davidmh/mdx.nvim",
+    ft = "mdx",
   },
 }

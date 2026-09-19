@@ -28,5 +28,20 @@ vim.filetype.add({
     [".*%.env$"] = "sh",
     [".*%.envrc$"] = "sh",
     [".*/ghostty/.*"] = "ghostty",
+    ["docker%-compose.*%.ya?ml"] = "yaml.docker-compose",
+    ["compose.*%.ya?ml"] = "yaml.docker-compose",
   },
 })
+
+-- Treesitter language aliases
+vim.treesitter.language.register("bash", { "sh", "zsh", "kitty" })
+vim.treesitter.language.register("ini", { "dosini", "ghostty" })
+vim.treesitter.language.register("git_config", "gitconfig")
+vim.treesitter.language.register("git_rebase", "gitrebase")
+vim.treesitter.language.register("ssh_config", "sshconfig")
+vim.treesitter.language.register("c_sharp", "cs")
+vim.treesitter.language.register("tsx", { "javascriptreact", "typescriptreact" })
+vim.treesitter.language.register("terraform", { "opentofu", "tf" })
+vim.treesitter.language.register("yaml", { "dockercompose", "yaml.docker-compose" })
+vim.treesitter.language.register("json", "jsonc")
+vim.treesitter.language.register("markdown", "mdx")

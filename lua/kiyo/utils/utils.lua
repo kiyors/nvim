@@ -1,8 +1,16 @@
 local M = {}
+
 --- @param icon_name string
 --- @return string
 function M.get_icon(icon_name)
-  return icons[icon_name] or ""
+  local ok, devicons = pcall(require, "nvim-web-devicons")
+  if ok then
+    local icon = devicons.get_icon(icon_name)
+    if icon then
+      return icon
+    end
+  end
+  return ""
 end
 
 --- Search for a binary in node_modules/.bin/ directories upwards from the start_path.

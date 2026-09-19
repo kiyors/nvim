@@ -11,7 +11,7 @@ return {
 
       -- Use a direct filesystem check to avoid flaky Mason API calls during startup
       local extension_path = vim.fn.stdpath("data") .. "/mason/packages/codelldb/extension/"
-      
+
       if vim.fn.isdirectory(extension_path) == 1 then
         codelldb_path = extension_path .. "adapter/codelldb"
         liblldb_path = extension_path .. "lsp/lib/liblldb"

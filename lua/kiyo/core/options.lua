@@ -3,6 +3,65 @@ vim.g.maplocalleader = " " -- change localleader to a space
 
 vim.loader.enable() -- Lua module bytecode cache
 
+-- Prevent plugins (e.g. catppuccin detect_integrations) from initializing unused
+-- Neovim 0.12 vim.pack (which creates an empty site/pack/core/opt directory triggering lazy/vim.pack warnings)
+if vim.pack and type(vim.pack.get) == "function" then
+  vim.pack.get = function()
+    return {}
+  end
+end
+
+-- Prevent E95 / E5009 errors on repeated :checkhealth calls and auto-load lazy plugins
+if vim.health and type(vim.health._check) == "function" then
+  local orig_health_check = vim.health._check
+  vim.health._check = function(mods, plugin_names)
+    -- Force-wipe any existing health:// buffers so vim.cmd.file('health://') never collides with E95
+    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+      if vim.api.nvim_buf_is_valid(buf) and vim.api.nvim_buf_get_name(buf):find("health://") then
+        pcall(vim.api.nvim_buf_delete, buf, { force = true })
+      end
+    end
+
+    -- If specific plugins are requested (e.g. :checkhealth nvim-treesitter), ensure lazy loads them
+    if plugin_names and plugin_names ~= "" then
+      local ok, lazy = pcall(require, "lazy")
+      if ok then
+        local names = vim.split(plugin_names, "%s+", { trimempty = true })
+        for _, name in ipairs(names) do
+          local clean_name = name:gsub("%..*$", "")
+          pcall(lazy.load, { plugins = { clean_name } })
+        end
+      end
+    end
+
+    return orig_health_check(mods, plugin_names)
+  end
+end
+
+-- Prepend Mason bin directory to PATH so language servers and formatters are immediately available
+local mason_bin = vim.fn.stdpath("data") .. "/mason/bin"
+if vim.fn.isdirectory(mason_bin) == 1 then
+  vim.env.PATH = mason_bin .. ":" .. vim.env.PATH
+end
+
+-- Ensure tools packaged in Home Manager's Neovim wrapper (e.g. imagemagick, ghostscript)
+-- are accessible in PATH even if Neovim was launched from an unwrapped system binary
+if vim.fn.executable("magick") == 0 then
+  local hm_nvim = "/etc/profiles/per-user/" .. (vim.env.USER or "gaurav") .. "/bin/nvim"
+  local f = io.open(hm_nvim, "r")
+  if f then
+    local content = f:read("*all")
+    f:close()
+    local seen = {}
+    for p in content:gmatch("(/nix/store/[^/]+/bin)") do
+      if not seen[p] and vim.uv.fs_stat(p) then
+        seen[p] = true
+        vim.env.PATH = p .. ":" .. vim.env.PATH
+      end
+    end
+  end
+end
+
 -- Disable language providers you don't use
 vim.g.loaded_python3_provider = 0
 vim.g.loaded_ruby_provider = 0
@@ -15,8 +74,10 @@ vim.g.loaded_netrwPlugin = 1 --  disable netrw
 vim.opt.incsearch = true -- make search act like search in modern browsers
 vim.opt.backup = false -- creates a backup file
 
--- Clipboard Configuration
-vim.opt.clipboard = "unnamedplus"
+-- Clipboard Configuration (schedule to avoid synchronous pbcopy IPC during initial startup)
+vim.schedule(function()
+  vim.opt.clipboard = "unnamedplus"
+end)
 
 vim.opt.cmdheight = 1 -- more space in the neovim command line for displaying messages
 vim.opt.completeopt = { "menu", "menuone", "noselect" } -- mostly just for cmp
@@ -38,6 +99,7 @@ vim.opt.splitbelow = true -- force all horizontal splits to go below current win
 vim.opt.splitright = true -- force all vertical splits to go to the right of current window
 vim.opt.swapfile = false -- creates a swapfile
 vim.opt.termguicolors = true -- set term gui colors (most terminals support this)
+vim.opt.background = "dark" -- explicit background prevents DSR query delays (E1568)
 
 vim.opt.timeoutlen = 1000 -- time to wait for a mapped sequence to complete (in milliseconds)
 vim.opt.undofile = true -- enable persistent undo

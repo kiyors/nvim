@@ -106,20 +106,7 @@ return {
     "nvim-lua/plenary.nvim",
     lazy = true,
   },
-  -- Neovim plugin to improve the default vim.ui interfaces
-  {
-    "stevearc/dressing.nvim",
-    event = "VeryLazy",
-    dependencies = { "MunifTanjim/nui.nvim" },
-    opts = {},
-    config = function()
-      require("dressing").setup()
-    end,
-  },
 
-  {
-    "editorconfig/editorconfig-vim",
-  },
   -- {
   --   "smjonas/inc-rename.nvim",
   --   cmd = "IncRename",

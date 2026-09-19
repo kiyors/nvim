@@ -54,6 +54,7 @@ return {
     },
     picker = {
       enabled = true,
+      ui_select = true,
       matchers = {
         frecency = true,
         cwd_bonus = false,

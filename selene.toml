@@ -1,4 +1,7 @@
-std = "vim"
+std = "lua51+vim"
 
 [lints]
+global_usage = "allow"
+if_same_then_else = "allow"
 mixed_table = "allow"
+multiple_statements = "allow"

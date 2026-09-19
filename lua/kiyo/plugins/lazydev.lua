@@ -8,5 +8,4 @@ return {
       },
     },
   },
-  { "folke/neoconf.nvim" },
 }

@@ -20,6 +20,13 @@ keymap("n", "<leader>qq", "<cmd>qa<CR>", "Quit all")
 keymap("n", "<Esc>", ":nohlsearch<CR>", "Clear highlights")
 keymap("n", "<leader>nh", ":nohl<CR>", "Clear highlights")
 
+-- Trim whitespace
+keymap("n", "<leader>cw", function()
+  local save_cursor = vim.fn.getpos(".")
+  vim.cmd([[%s/\s\+$//e]])
+  vim.fn.setpos(".", save_cursor)
+end, "Erase Whitespace")
+
 -- Centered scrolling
 keymap("n", "<C-d>", "<C-d>zz", "Scroll down and center")
 keymap("n", "<C-u>", "<C-u>zz", "Scroll up and center")

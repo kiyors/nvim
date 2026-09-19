@@ -3,7 +3,6 @@ return {
   event = "InsertEnter",
   dependencies = {
     "rafamadriz/friendly-snippets",
-    "neovim/nvim-lspconfig",
     "folke/lazydev.nvim",
     "Kaiser-Yang/blink-cmp-dictionary",
   },
@@ -70,10 +69,10 @@ return {
 
       list = {
         selection = {
-          preselect = function(ctx)
+          preselect = function(_)
             return not require("blink.cmp").snippet_active({ direction = 1 })
           end,
-          auto_insert = function(ctx)
+          auto_insert = function(_)
             return vim.bo.filetype ~= "markdown"
           end,
         },

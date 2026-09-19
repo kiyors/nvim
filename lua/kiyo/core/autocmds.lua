@@ -36,40 +36,6 @@ local project_utils = require("kiyo.utils.project-utils")
 project_utils.setup_commands()
 project_utils.setup_cache_invalidation()
 
--- FIXED: Project detection autocmd with proper error handling
-vim.api.nvim_create_autocmd("BufEnter", {
-  group = vim.api.nvim_create_augroup("project-detection", { clear = true }),
-  pattern = { "*.js", "*.jsx", "*.ts", "*.tsx", "*.json", "*.jsonc" },
-  once = true,
-  callback = function()
-    -- Use pcall to safely execute the detection
-    local ok, result = pcall(function()
-      local project_utils = require("kiyo.utils.project-utils")
-      local dirname = vim.fn.expand("%:p:h")
-
-      -- Use the detection functions that work with your smart configs
-      local formatter = project_utils.detect_js_formatter(dirname)
-      local linter = project_utils.detect_js_linter(dirname)
-
-      return {
-        formatter = formatter,
-        linter = linter,
-        dirname = dirname,
-      }
-    end)
-
-    if ok and result then
-      -- Only show notification in debug mode or if explicitly needed
-      -- Comment out or remove this line if you don't want the notification
-      -- vim.notify(
-      --   string.format("Project detected - Formatter: %s, Linter: %s", result.formatter, result.linter),
-      --   vim.log.levels.INFO,
-      --   { title = "Project Config" }
-      -- )
-    end
-  end,
-})
-
 -- auto close brackets
 -- this
 autocmd("FileType", { pattern = "man", command = [[nnoremap <buffer><silent> q :quit<CR>]] })
@@ -177,69 +143,122 @@ autocmd("BufWritePre", {
   desc = "Auto-create directories",
 })
 
-autocmd({ "CmdWinEnter" }, {
+autocmd("CmdWinEnter", {
+  group = general,
   callback = function()
     vim.cmd("quit")
   end,
+  desc = "Prevent accidental command-line window",
 })
 
-autocmd({ "BufWinEnter" }, {
-  pattern = { "*" },
+autocmd("BufWinEnter", {
+  group = general,
+  pattern = "*",
   callback = function()
     vim.cmd("checktime")
   end,
+  desc = "Check if file changed on disk",
 })
 
-autocmd({ "BufWinEnter" }, {
-  pattern = { "*" },
-  callback = function()
-    local dirname = vim.fn.getcwd():match("([^/]+)$")
+local function update_title()
+  local dirname = vim.fn.getcwd():match("([^/]+)$")
+  if dirname then
     vim.opt.titlestring = dirname
-  end,
+  end
+end
+update_title()
+
+autocmd("DirChanged", {
+  group = general,
+  callback = update_title,
+  desc = "Update titlestring on directory change",
 })
 
-autocmd({ "TextYankPost" }, {
+autocmd("TextYankPost", {
+  group = general,
   callback = function()
     vim.hl.on_yank({ higroup = "Visual", timeout = 40 })
   end,
+  desc = "Highlight yanked text",
 })
 
-autocmd({ "FileType" }, {
+autocmd("FileType", {
+  group = general,
   pattern = { "gitcommit", "markdown", "NeogitCommitMessage" },
   callback = function()
     vim.opt_local.wrap = true
     vim.opt_local.spell = true
   end,
+  desc = "Wrap and spell for prose buffers",
 })
 
-autocmd({ "CursorHold" }, {
-  callback = function()
-    if not package.loaded["luasnip"] then
-      return
-    end
-    local luasnip = require("luasnip")
-    if luasnip.expand_or_jumpable() then
-      -- ask maintainer for option to make this silent
-      -- luasnip.unlink_current()
-      vim.cmd([[silent! lua require("luasnip").unlink_current()]])
+-- Ensure filetype detection runs if skipped by eventignore or picker window transitions
+autocmd({ "BufEnter", "BufWinEnter" }, {
+  group = general,
+  callback = function(args)
+    local buf = args.buf
+    if vim.bo[buf].buftype == "" and vim.bo[buf].filetype == "" then
+      local name = vim.api.nvim_buf_get_name(buf)
+      if name ~= "" and vim.uv.fs_stat(name) then
+        vim.cmd("filetype detect")
+      end
     end
   end,
+  desc = "Recover missing filetype detection after picker transitions",
 })
 
-autocmd("BufWinLeave", {
-  pattern = "?*", -- Avoid running for unnamed buffers
-  callback = function()
-    if vim.fn.empty(vim.fn.expand("%")) == 0 then -- Check if file has a name
-      vim.cmd("silent! mkview")
+-- Start Treesitter syntax highlighting and folding for supported filetypes
+local function start_treesitter(buf)
+  if not buf or not vim.api.nvim_buf_is_valid(buf) or not vim.api.nvim_buf_is_loaded(buf) then
+    return
+  end
+  local ft = vim.bo[buf].filetype
+  -- If filetype is empty for a real file (e.g. eventignore race during picker close), detect it
+  if ft == "" and vim.bo[buf].buftype == "" then
+    local name = vim.api.nvim_buf_get_name(buf)
+    if name ~= "" then
+      local detected = vim.filetype.match({ buf = buf, filename = name })
+      if detected and detected ~= "" then
+        vim.bo[buf].filetype = detected
+        ft = detected
+      end
     end
+  end
+
+  if
+    ft == ""
+    or ft == "help"
+    or ft == "checkhealth"
+    or ft == "lazy"
+    or ft == "snacks_dashboard"
+    or ft == "snacks_notif"
+    or ft == "snacks_picker_input"
+    or ft == "snacks_picker_preview"
+  then
+    return
+  end
+
+  local lang = vim.treesitter.language.get_lang(ft) or ft
+  local ok = pcall(vim.treesitter.start, buf, lang)
+  if ok then
+    local win = vim.api.nvim_get_current_win()
+    if vim.api.nvim_win_get_buf(win) == buf then
+      vim.wo[win].foldmethod = "expr"
+      vim.wo[win].foldexpr = "v:lua.vim.treesitter.foldexpr()"
+    end
+  elseif ft ~= "" and vim.bo[buf].syntax == "" then
+    -- Fallback to regex syntax highlighting if treesitter parser is unavailable
+    vim.bo[buf].syntax = ft
+  end
+end
+
+autocmd({ "FileType", "BufEnter", "BufWinEnter" }, {
+  group = general,
+  callback = function(args)
+    start_treesitter(args.buf)
   end,
+  desc = "Start Treesitter syntax highlighting and folding",
 })
 
-autocmd("BufWinEnter", {
-  pattern = "?*", -- Avoid running for unnamed buffers
-  callback = function()
-    if vim.fn.empty(vim.fn.expand("%")) == 0 and vim.fn.filereadable(vim.fn.expand("%:p")) == 1 then
-      vim.cmd("silent! loadview")
-    end
-  end,
-})
+-- Ensure the initial buffer (if opened directly from CLI) has Treesitter highlighting active
+start_treesitter(vim.api.nvim_get_current_buf())

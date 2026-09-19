@@ -103,10 +103,12 @@ return {
       "DapBreakpointCondition",
       { text = "󰟃 ", texthl = "DapBreakpoint", linehl = "", numhl = "" }
     )
-    vim.fn.sign_define(
-      "DapStopped",
-      { text = "󰁕 ", texthl = "DapStopped", linehl = "DiagnosticUnderlineInfo", numhl = "DapStopped" }
-    )
+    vim.fn.sign_define("DapStopped", {
+      text = "󰁕 ",
+      texthl = "DapStopped",
+      linehl = "DiagnosticUnderlineInfo",
+      numhl = "DapStopped",
+    })
     vim.fn.sign_define(
       "DapBreakpointRejected",
       { text = "󰃭 ", texthl = "DapBreakpoint", linehl = "", numhl = "" }

@@ -1,7 +1,6 @@
 return {
   "m4xshen/hardtime.nvim",
-  -- lazy = true,
-  enabled = true,
+  event = { "BufReadPost", "BufNewFile" },
   dependencies = { "MunifTanjim/nui.nvim" },
   opts = {
     disable_mouse = false,

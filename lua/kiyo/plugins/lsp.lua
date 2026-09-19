@@ -2,11 +2,20 @@ return {
   "neovim/nvim-lspconfig",
   event = { "BufReadPost", "BufNewFile" },
   dependencies = {
+    { "folke/neoconf.nvim", cmd = "Neoconf", config = false },
     "mason-org/mason.nvim",
     "mason-org/mason-lspconfig.nvim",
-    "saghen/blink.cmp", -- For LSP capabilities (auto-detected in 0.11)
   },
   config = function()
+    -- Initialize neoconf before lspconfig to support project-local .neoconf.json / .vscode/settings.json
+    local has_neoconf, neoconf = pcall(require, "neoconf")
+    if has_neoconf then
+      neoconf.setup()
+    end
+
+    -- Set LSP log level to WARN to prevent huge 100MB+ logs and disk I/O bottlenecks
+    vim.lsp.log.set_level(vim.log.levels.WARN)
+
     -- Diagnostic Configuration
     vim.diagnostic.config({
       -- Show diagnostic signs in the sign column
@@ -47,13 +56,53 @@ return {
       },
     })
 
-    -- Configure Astro LSP to use the fallback TypeScript 6 package
-    -- because Astro LSP (Volar) does not yet support the TS 7 Go rewrite.
+    -- Configure Astro LSP to dynamically resolve a valid typescript.js tsdk
+    local mason_astro_ts = vim.fn.stdpath("data")
+      .. "/mason/packages/astro-language-server/node_modules/typescript/lib"
+    local mason_ts = vim.fn.stdpath("data")
+      .. "/mason/packages/typescript-language-server/node_modules/typescript/lib"
+
+    local fallback_tsdk = (vim.uv.fs_stat(mason_astro_ts .. "/typescript.js") and mason_astro_ts)
+      or (vim.uv.fs_stat(mason_ts .. "/typescript.js") and mason_ts)
+      or nil
+
+    local function resolve_tsdk(root_dir)
+      if root_dir then
+        local project_ts = root_dir .. "/node_modules/typescript/lib"
+        if
+          vim.uv.fs_stat(project_ts .. "/typescript.js")
+          or vim.uv.fs_stat(project_ts .. "/tsserverlibrary.js")
+        then
+          return project_ts
+        end
+      end
+      return fallback_tsdk
+    end
+
     vim.lsp.config.astro = {
       init_options = {
         typescript = {
-          tsdk = vim.fn.getcwd() .. "/node_modules/@typescript/typescript6/lib",
+          tsdk = fallback_tsdk,
         },
+      },
+      before_init = function(params, config)
+        local tsdk = resolve_tsdk(config.root_dir)
+        if tsdk and tsdk ~= "" then
+          ---@diagnostic disable-next-line: inject-field
+          config.init_options = config.init_options or {}
+          ---@diagnostic disable-next-line: inject-field
+          config.init_options.typescript = { tsdk = tsdk }
+          if params and type(params.initializationOptions) == "table" then
+            ---@diagnostic disable-next-line: inject-field
+            params.initializationOptions.typescript = { tsdk = tsdk }
+          end
+        end
+      end,
+    }
+
+    vim.lsp.config.harper_ls = {
+      settings = {
+        ["harper-ls"] = {},
       },
     }
 
@@ -217,7 +266,8 @@ return {
           vim.lsp.inlay_hint.enable(true, { bufnr = event.buf })
 
           map("<leader>th", function()
-            vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled({ bufnr = event.buf }))
+            local current = vim.lsp.inlay_hint.is_enabled({ bufnr = event.buf })
+            vim.lsp.inlay_hint.enable(not current, { bufnr = event.buf })
           end, "[T]oggle Inlay [H]ints")
         end
       end,

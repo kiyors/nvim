@@ -49,10 +49,20 @@ return {
           { "<leader>Cu", crates.update_crate, desc = "update crate", buffer = data.buf },
           { "<leader>Ca", crates.update_all_crates, desc = "update all crates", buffer = data.buf },
           { "<leader>CU", crates.upgrade_crate, desc = "upgrade crate", buffer = data.buf },
-          { "<leader>CA", crates.upgrade_all_crates, desc = "upgrade all crates", buffer = data.buf },
+          {
+            "<leader>CA",
+            crates.upgrade_all_crates,
+            desc = "upgrade all crates",
+            buffer = data.buf,
+          },
           { "<leader>CH", crates.open_homepage, desc = "open homepage", buffer = data.buf },
           { "<leader>CR", crates.open_repository, desc = "open repository", buffer = data.buf },
-          { "<leader>CD", crates.open_documentation, desc = "open documentation", buffer = data.buf },
+          {
+            "<leader>CD",
+            crates.open_documentation,
+            desc = "open documentation",
+            buffer = data.buf,
+          },
           { "<leader>CC", crates.open_crates_io, desc = "open crates.io", buffer = data.buf },
           {
             mode = "v",

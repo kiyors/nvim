@@ -6,7 +6,6 @@ return {
     "kevinhwang91/promise-async",
   },
   cmd = { "Laravel", "Artisan", "Composer", "Sail" },
-  event = { "VeryLazy" },
   keys = {
     { "<leader>La", "<cmd>Laravel artisan<cr>", desc = "Laravel Artisan" },
     { "<leader>Lr", "<cmd>Laravel routes<cr>", desc = "Laravel Routes" },

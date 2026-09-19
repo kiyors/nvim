@@ -9,17 +9,33 @@ return {
     local set = vim.keymap.set
 
     -- Add or skip cursor above/below the main cursor.
-    set({ "n", "x" }, "<up>", function() mc.lineAddCursor(-1) end, { desc = "MC: add cursor above" })
-    set({ "n", "x" }, "<down>", function() mc.lineAddCursor(1) end, { desc = "MC: add cursor below" })
-    set({ "n", "x" }, "<leader><up>", function() mc.lineSkipCursor(-1) end, { desc = "MC: skip line up" })
-    set({ "n", "x" }, "<leader><down>", function() mc.lineSkipCursor(1) end, { desc = "MC: skip line down" })
+    set({ "n", "x" }, "<up>", function()
+      mc.lineAddCursor(-1)
+    end, { desc = "MC: add cursor above" })
+    set({ "n", "x" }, "<down>", function()
+      mc.lineAddCursor(1)
+    end, { desc = "MC: add cursor below" })
+    set({ "n", "x" }, "<leader><up>", function()
+      mc.lineSkipCursor(-1)
+    end, { desc = "MC: skip line up" })
+    set({ "n", "x" }, "<leader><down>", function()
+      mc.lineSkipCursor(1)
+    end, { desc = "MC: skip line down" })
 
     -- Match-based cursor add/skip. Moved under <leader>m to avoid clashing with
     -- snacks's <leader>s* search prefix and the <leader>n notifications/noice binding.
-    set({ "n", "x" }, "<leader>mn", function() mc.matchAddCursor(1) end, { desc = "MC: match next" })
-    set({ "n", "x" }, "<leader>ms", function() mc.matchSkipCursor(1) end, { desc = "MC: match skip next" })
-    set({ "n", "x" }, "<leader>mN", function() mc.matchAddCursor(-1) end, { desc = "MC: match prev" })
-    set({ "n", "x" }, "<leader>mS", function() mc.matchSkipCursor(-1) end, { desc = "MC: match skip prev" })
+    set({ "n", "x" }, "<leader>mn", function()
+      mc.matchAddCursor(1)
+    end, { desc = "MC: match next" })
+    set({ "n", "x" }, "<leader>ms", function()
+      mc.matchSkipCursor(1)
+    end, { desc = "MC: match skip next" })
+    set({ "n", "x" }, "<leader>mN", function()
+      mc.matchAddCursor(-1)
+    end, { desc = "MC: match prev" })
+    set({ "n", "x" }, "<leader>mS", function()
+      mc.matchSkipCursor(-1)
+    end, { desc = "MC: match skip prev" })
 
     -- Add a cursor for every match of the word/selection in the buffer.
     set({ "n", "x" }, "<leader>mA", mc.matchAllAddCursors, { desc = "MC: match all" })

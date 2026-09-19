@@ -31,13 +31,13 @@ return {
               n = utils.colors.blue,
               i = utils.colors.green,
               v = utils.colors.mauve,
-              [""] = utils.colors.red,
+              ["\22"] = utils.colors.red, -- Visual block mode (<C-v>)
               V = utils.colors.yellow,
               c = utils.colors.peach,
               no = utils.colors.blue,
               s = utils.colors.teal,
               S = utils.colors.teal,
-              [""] = utils.colors.teal,
+              ["\19"] = utils.colors.teal, -- Select block mode (<C-s>)
               ic = utils.colors.green,
               R = utils.colors.red,
               Rv = utils.colors.red,

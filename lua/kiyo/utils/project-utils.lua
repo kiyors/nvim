@@ -4,7 +4,7 @@ local M = {}
 
 -- Check if a file exists
 function M.file_exists(path)
-  local stat = vim.loop.fs_stat(path)
+  local stat = vim.uv.fs_stat(path)
   return stat and stat.type == "file"
 end
 
@@ -281,7 +281,7 @@ function M.setup_commands()
 
     local width = 60
     local height = #lines
-    local win = vim.api.nvim_open_win(buf, true, {
+    vim.api.nvim_open_win(buf, true, {
       relative = "editor",
       width = width,
       height = height,
