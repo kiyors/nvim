@@ -43,7 +43,32 @@ return {
       },
     },
     toggle = { enabled = true },
-    image = { enabled = true },
+    image = {
+      enabled = true,
+      doc = {
+        max_width = 140,
+        max_height = 60,
+      },
+      convert = {
+        notify = true,
+        mermaid = function()
+          local theme = vim.o.background == "light" and "neutral" or "dark"
+          local scale = (Snacks.image.terminal.size().scale or 1) * 1.5
+          return {
+            "-i",
+            "{src}",
+            "-o",
+            "{file}",
+            "-b",
+            "transparent",
+            "-t",
+            theme,
+            "-s",
+            tostring(scale),
+          }
+        end,
+      },
+    },
     gh = { enabled = true },
     explorer = { enabled = false },
     indent = { enabled = true },
@@ -244,6 +269,103 @@ return {
     },
   },
   init = function()
+    -- Cross-platform browser resolution for Mermaid CLI (Puppeteer)
+    if not vim.env.PUPPETEER_EXECUTABLE_PATH or vim.fn.filereadable(vim.env.PUPPETEER_EXECUTABLE_PATH) == 0 then
+      local browser = nil
+
+      -- 1. Check binaries in PATH (Linux / Unix / Windows / macOS)
+      local path_binaries = {
+        "google-chrome-stable",
+        "google-chrome",
+        "chromium",
+        "chromium-browser",
+        "brave-browser",
+        "microsoft-edge-stable",
+        "microsoft-edge",
+        "chrome.exe",
+        "msedge.exe",
+        "brave.exe",
+      }
+      for _, bin in ipairs(path_binaries) do
+        local p = vim.fn.exepath(bin)
+        if p ~= "" then
+          browser = p
+          break
+        end
+      end
+
+      -- 2. macOS common application paths
+      if not browser and vim.fn.has("mac") == 1 then
+        local mac_candidates = {
+          "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+          "/Applications/Chromium.app/Contents/MacOS/Chromium",
+          "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
+          "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+          vim.fn.expand("~/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"),
+          vim.fn.expand("~/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"),
+        }
+        for _, p in ipairs(mac_candidates) do
+          if vim.fn.executable(p) == 1 then
+            browser = p
+            break
+          end
+        end
+      end
+
+      -- 3. Windows standard application paths
+      if not browser and vim.fn.has("win32") == 1 then
+        local prog_files = vim.env["ProgramFiles"] or "C:\\Program Files"
+        local prog_files_x86 = vim.env["ProgramFiles(x86)"] or "C:\\Program Files (x86)"
+        local local_app_data = vim.env["LOCALAPPDATA"] or ""
+
+        local win_candidates = {
+          prog_files .. "\\Google\\Chrome\\Application\\chrome.exe",
+          prog_files_x86 .. "\\Google\\Chrome\\Application\\chrome.exe",
+          prog_files .. "\\Microsoft\\Edge\\Application\\msedge.exe",
+          prog_files_x86 .. "\\Microsoft\\Edge\\Application\\msedge.exe",
+          prog_files .. "\\BraveSoftware\\Brave-Browser\\Application\\brave.exe",
+          local_app_data .. "\\Google\\Chrome\\Application\\chrome.exe",
+        }
+        for _, p in ipairs(win_candidates) do
+          if vim.fn.executable(p) == 1 then
+            browser = p
+            break
+          end
+        end
+      end
+
+      -- 4. Linux common fallback paths
+      if not browser and vim.fn.has("unix") == 1 and vim.fn.has("mac") == 0 then
+        local linux_candidates = {
+          "/usr/bin/google-chrome-stable",
+          "/usr/bin/google-chrome",
+          "/usr/bin/chromium",
+          "/usr/bin/chromium-browser",
+          "/usr/bin/brave-browser",
+          "/snap/bin/chromium",
+          "/var/lib/flatpak/exports/bin/org.chromium.Chromium",
+          "/var/lib/flatpak/exports/bin/com.google.Chrome",
+        }
+        for _, p in ipairs(linux_candidates) do
+          if vim.fn.executable(p) == 1 then
+            browser = p
+            break
+          end
+        end
+      end
+
+      if browser then
+        vim.env.PUPPETEER_EXECUTABLE_PATH = browser
+      end
+    end
+
+    -- Ensure Ghostty terminal features are recognized inside Tmux
+    if not vim.env.SNACKS_GHOSTTY then
+      if vim.env.GHOSTTY_RESOURCES_DIR or vim.env.GHOSTTY_BIN_DIR or vim.env.TERMINAL == "ghostty" then
+        vim.env.SNACKS_GHOSTTY = "true"
+      end
+    end
+
     vim.api.nvim_create_autocmd("User", {
       pattern = "VeryLazy",
       callback = function()

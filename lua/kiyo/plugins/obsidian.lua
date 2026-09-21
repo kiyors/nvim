@@ -81,7 +81,7 @@ return {
       func = vim.ui.open,
     },
     picker = {
-      name = "snacks.pick",
+      name = "snacks.picker",
       notemappings = {
         new = "<C-x>",
         insert_link = "<C-l>",
