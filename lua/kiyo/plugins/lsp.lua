@@ -106,6 +106,16 @@ return {
       },
     }
 
+    vim.lsp.config.markdown_oxide = {
+      capabilities = {
+        workspace = {
+          didChangeWatchedFiles = {
+            dynamicRegistration = true,
+          },
+        },
+      },
+    }
+
     -- Enable LSP Servers (Native Neovim 0.11+ API)
     -- This is the safest way to ensure your specific servers are loaded.
     -- Note: rust_analyzer is EXCLUDED because it's handled by rustaceanvim.
@@ -147,6 +157,27 @@ return {
     vim.api.nvim_create_autocmd("LspAttach", {
       group = vim.api.nvim_create_augroup("UserLspConfig", { clear = true }),
       callback = function(event)
+        -- Workaround for LSP servers (e.g. markdown-oxide via lsp-types) sending null for file operation filter scheme,
+        -- which Neovim decodes as vim.NIL (userdata) and crashes mini.files concatenation
+        local client = vim.lsp.get_client_by_id(event.data.client_id)
+        if client and client.server_capabilities and client.server_capabilities.workspace then
+          local file_ops = client.server_capabilities.workspace.fileOperations
+          if type(file_ops) == "table" then
+            for _, op in pairs(file_ops) do
+              if type(op) == "table" and type(op.filters) == "table" then
+                for _, filter in ipairs(op.filters) do
+                  if
+                    filter.scheme == vim.NIL
+                    or (filter.scheme ~= nil and type(filter.scheme) ~= "string")
+                  then
+                    filter.scheme = nil
+                  end
+                end
+              end
+            end
+          end
+        end
+
         local map = function(keys, func, desc)
           vim.keymap.set("n", keys, func, { buffer = event.buf, desc = "LSP: " .. desc })
         end

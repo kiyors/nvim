@@ -45,12 +45,15 @@ return {
     toggle = { enabled = true },
     image = {
       enabled = true,
+      math = {
+        enabled = false, -- Disable tectonic/latex rendering of $...$ expressions (e.g. pricing in markdown)
+      },
       doc = {
         max_width = 140,
         max_height = 60,
       },
       convert = {
-        notify = true,
+        notify = false,
         mermaid = function()
           local theme = vim.o.background == "light" and "neutral" or "dark"
           local scale = (Snacks.image.terminal.size().scale or 1) * 1.5
@@ -270,7 +273,10 @@ return {
   },
   init = function()
     -- Cross-platform browser resolution for Mermaid CLI (Puppeteer)
-    if not vim.env.PUPPETEER_EXECUTABLE_PATH or vim.fn.filereadable(vim.env.PUPPETEER_EXECUTABLE_PATH) == 0 then
+    if
+      not vim.env.PUPPETEER_EXECUTABLE_PATH
+      or vim.fn.filereadable(vim.env.PUPPETEER_EXECUTABLE_PATH) == 0
+    then
       local browser = nil
 
       -- 1. Check binaries in PATH (Linux / Unix / Windows / macOS)
@@ -361,7 +367,11 @@ return {
 
     -- Ensure Ghostty terminal features are recognized inside Tmux
     if not vim.env.SNACKS_GHOSTTY then
-      if vim.env.GHOSTTY_RESOURCES_DIR or vim.env.GHOSTTY_BIN_DIR or vim.env.TERMINAL == "ghostty" then
+      if
+        vim.env.GHOSTTY_RESOURCES_DIR
+        or vim.env.GHOSTTY_BIN_DIR
+        or vim.env.TERMINAL == "ghostty"
+      then
         vim.env.SNACKS_GHOSTTY = "true"
       end
     end

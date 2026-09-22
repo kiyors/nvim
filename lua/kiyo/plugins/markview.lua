@@ -17,6 +17,9 @@ return {
         end,
       },
     },
+    latex = {
+      enable = false, -- Disable LaTeX math rendering to prevent currency signs ($0.0018) from triggering phantom math spans
+    },
     markdown_inline = {
       checkboxes = {
         checked = { scope_hl = false },
