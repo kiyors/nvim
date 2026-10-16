@@ -1,7 +1,7 @@
 return {
   "mrcjkb/rustaceanvim",
-  version = "^5",
-  ft = { "rust" },
+  version = "^9",
+  lazy = false,
   init = function()
     -- We define a function for vim.g.rustaceanvim to ensure it's evaluated lazily
     -- and only when a Rust file is actually opened.
