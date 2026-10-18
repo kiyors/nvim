@@ -44,23 +44,17 @@ if vim.fn.isdirectory(mason_bin) == 1 then
   vim.env.PATH = mason_bin .. ":" .. vim.env.PATH
 end
 
--- Ensure tools packaged in Home Manager's Neovim wrapper (e.g. imagemagick, ghostscript)
--- are accessible in PATH even if Neovim was launched from an unwrapped system binary
-if vim.fn.executable("magick") == 0 then
-  local hm_nvim = "/etc/profiles/per-user/" .. (vim.env.USER or "gaurav") .. "/bin/nvim"
-  local f = io.open(hm_nvim, "r")
-  if f then
-    local content = f:read("*all")
-    f:close()
-    local seen = {}
-    for p in content:gmatch("(/nix/store/[^/]+/bin)") do
-      if not seen[p] and vim.uv.fs_stat(p) then
-        seen[p] = true
-        vim.env.PATH = p .. ":" .. vim.env.PATH
-      end
-    end
-  end
-end
+-- Tools that ship inside Home Manager's Neovim wrapper (imagemagick,
+-- ghostscript, …) are placed on PATH by the `home.editor.neovim` module
+-- through `sessionVariables`, so they are found whether Neovim was started
+-- from the wrapped profile binary or from a system one.
+--
+-- This used to be reconstructed here by parsing `/nix/store` paths out of
+-- the wrapper script. That was Nix-specific logic inside the editor config,
+-- which broke for anyone running the same config without Nix. It is a no-op
+-- when the paths are already on PATH, so nothing is lost by dropping it.
+--
+-- See home/editor/neovim.nix for the Nix-side equivalent.
 
 -- Disable language providers you don't use
 vim.g.loaded_python3_provider = 0

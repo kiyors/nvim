@@ -1,3 +1,17 @@
+-- Root of this Neovim config, derived from this file's own path
+-- (…/config/nvim/lua/kiyo/plugins/blink.lua -> …/config/nvim).
+--
+-- Prefer `$XDG_CONFIG_HOME/nvim` so a user who has symlinked the directory
+-- into their XDG config dir gets the same answer as one who checked the repo
+-- out in place. Falls back to resolving the file path, which covers the Nix
+-- out-of-store symlink layout where this file is read through a symlink.
+local nvim_dir = vim.fs.normalize(vim.fn.stdpath("config"))
+if vim.fn.isdirectory(nvim_dir .. "/lua") == 0 then
+  nvim_dir = vim.fs.dirname(
+    vim.fs.dirname(vim.fs.dirname(vim.fs.dirname(debug.getinfo(1, "S").source:sub(2))))
+  )
+end
+
 return {
   "saghen/blink.cmp",
   event = "InsertEnter",
@@ -229,10 +243,13 @@ return {
             -- (By default, fallback is used when fzf is not found)
             force_fallback = true,
 
-            dictionary_directories = { vim.fn.expand("~/dotfiles/config/nvim/dictionaries") },
+            -- Resolved from this file's own location rather than a hardcoded
+            -- `~/dotfiles` path, so the config works wherever it is checked
+            -- out and for anyone copying just `config/nvim`.
+            dictionary_directories = { nvim_dir .. "/dictionaries" },
             dictionary_files = {
-              vim.fn.expand("~/dotfiles/config/nvim/spell/en.utf-8.add"),
-              vim.fn.expand("~/dotfiles/config/nvim/spell/es.utf-8.add"),
+              nvim_dir .. "/spell/en.utf-8.add",
+              nvim_dir .. "/spell/es.utf-8.add",
             },
           },
         },
