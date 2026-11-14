@@ -150,7 +150,7 @@ return {
         lua = { "stylua" },
 
         -- Astro
-        astro = {},
+        astro = { "oxfmt" },
 
         -- Toml
         toml = { "taplo" },
