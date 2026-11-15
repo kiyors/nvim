@@ -4,8 +4,9 @@ A fast, modern Neovim configuration built with lazy.nvim, Tree-sitter, blink-cmp
 
 ## Key Highlights
 
-- **Built-in `vim.lsp.config` & `vim.lsp.enable()`**: Native LSP management on Neovim 0.11+.
-- **blink-cmp**: Modern completion engine with LSP, snippets, path, and buffer sources.
+- **Built-in `vim.lsp.config` & `vim.lsp.enable()`**: Native LSP management on Neovim 0.11+ / 0.12 with modular configs in `after/lsp/`.
+- **Fast Fuzzy Finding (`fff.nvim` + Snacks)**: Rust-powered fuzzy search with frecency scoring, live git badges, and Snacks picker UI.
+- **blink-cmp**: Modern completion engine with LSP, snippets, path, buffer, and dictionary sources.
 - **Multi-Language Diff & Patch Highlighting**: Full Tree-sitter injected syntax highlighting for `.patch` and `.diff` files across all configured languages.
 - **Interactive Patch Review & Operations**: Dedicated buffer actions to inspect, apply, stage, reverse, quickfix-index, and navigate patches directly in Neovim.
 - **Optimized Diff Engine**: Histogram diff algorithm with `linematch:60` for clean intra-line alignment.
@@ -18,7 +19,19 @@ A fast, modern Neovim configuration built with lazy.nvim, Tree-sitter, blink-cmp
 ~/.config/nvim/
 ├── after/
 │   ├── ftplugin/
-│   │   └── diff.lua              # Patch operations, navigation & jump-to-source
+│   │   ├── diff.lua              # Patch operations, navigation & jump-to-source
+│   │   ├── typescript.lua        # 2-space indentation & commentstring
+│   │   ├── javascript.lua        # 2-space indentation & commentstring
+│   │   ├── rust.lua              # RustLsp hover, code actions & diagnostics
+│   │   └── python.lua            # 4-space indentation & python options
+│   ├── lsp/
+│   │   ├── ts_ls.lua             # TypeScript/JavaScript LSP & inlay hints
+│   │   ├── astro.lua             # Astro language server & dynamic tsdk
+│   │   ├── pyright.lua           # Pyright type checker settings
+│   │   ├── ruff.lua              # Ruff linter/formatter integration
+│   │   ├── nixd.lua              # Nix language server & nixfmt
+│   │   ├── harper_ls.lua         # Harper grammar checker
+│   │   └── markdown_oxide.lua    # Markdown Oxide PKM LSP
 │   └── queries/
 │       └── diff/
 │           ├── highlights.scm    # High-priority diff sign highlights
@@ -26,15 +39,20 @@ A fast, modern Neovim configuration built with lazy.nvim, Tree-sitter, blink-cmp
 ├── lua/
 │   └── kiyo/
 │       ├── core/
-│       │   ├── autocmds.lua      # Autocommands (whitespace guard for diffs)
-│       │   └── options.lua       # Diffopt (histogram algorithm & linematch)
-│       └── plugins/
-│           ├── blink.lua         # Blink-cmp completion configuration
-│           ├── colorscheme.lua   # Catppuccin with soft diff background tints
-│           ├── git.lua           # Gitsigns, Diffview, Neogit setup
-│           ├── lsp.lua           # LSP server definitions & settings
-│           ├── mason.lua         # Mason package installer
-│           └── treesitter.lua    # Parsers and syntax highlighting
+│       │   ├── autocmds.lua      # Autocommands (whitespace guard, treesitter hook)
+│       │   ├── keymap.lua        # Global mappings & navigation
+│       │   └── options.lua       # Neovim options & 0.12 compatibility guards
+│       ├── plugins/
+│       │   ├── blink.lua         # Blink-cmp completion configuration
+│       │   ├── fff.lua           # Fast fuzzy finder configuration
+│       │   ├── lsp.lua           # LSP server activation & handlers
+│       │   ├── mason.lua         # Mason package installer
+│       │   ├── snacks/           # Snacks picker, terminal & dashboard
+│       │   └── treesitter.lua    # Parsers and syntax highlighting
+│       └── utils/
+│           ├── fff_snacks.lua    # fff.nvim ↔ snacks.picker bridge
+│           ├── project-utils.lua # Project tooling (biome/eslint/prettier)
+│           └── lualine-utils.lua # Statusline components & LSP indicators
 ├── plugin/
 │   └── ft.lua                    # Custom filetype detections (.patch, .diff, etc.)
 └── init.lua
@@ -83,6 +101,28 @@ When viewing a `.patch` or `.diff` file, the following buffer-local shortcuts ar
 - `<leader>gh`: View git commit history of the current file (`:DiffviewFileHistory %`).
 - `<leader>gH`: View git repository-wide commit history (`:DiffviewFileHistory`).
 - `<leader>gt`: Toggle Diffview file tree panel (`:DiffviewToggleFiles`).
+
+---
+
+## Fuzzy Finding & Grep (`fff.nvim` + Snacks)
+
+File finding and text search are accelerated by **`fff.nvim`** (a native Rust-backed scanner and fuzzy matcher using `blink.cmp`'s matching algorithms) paired with **`snacks.picker`** for UI and preview:
+
+| Keymap | Action | Description |
+|---|---|---|
+| `<leader><space>` | **Find files** | Fast fuzzy file picker with frecency scoring & git status badges |
+| `<leader>ff` | **Find files** | Alternate mapping for fast file picker |
+| `<leader>fc` | **Find config files** | Opens picker scoped to Neovim config (`~/.config/nvim`) |
+| `<leader>/` or `<leader>fw` | **Live grep** | Project-wide live grep powered by `fff` |
+| `<leader>sg` | **Live grep** | Alternate mapping for live grep |
+| `<leader>fW` / `<leader>sw` | **Grep word** | Greps word under cursor (or active visual selection) |
+| `<leader>fz` | **Fuzzy grep** | Direct fuzzy text search |
+| `<leader>fm` | **Grep modified** | Search strictly within git-modified files |
+| `<leader>fb` / `<leader>,` | **Buffers** | Open active buffers picker |
+
+> [!TIP]
+> In live grep (`<leader>/` or `<leader>fw`), press **`<S-Tab>`** in insert or normal mode to cycle search modes dynamically:
+> **`plain`** (literal string) ➔ **`regex`** (regular expression) ➔ **`fuzzy`** (fuzzy matching).
 
 ---
 

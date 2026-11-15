@@ -3,6 +3,13 @@ local M = {}
 --- @param icon_name string
 --- @return string
 function M.get_icon(icon_name)
+  local ok_mini, mini_icons = pcall(require, "mini.icons")
+  if ok_mini then
+    local icon = mini_icons.get("file", icon_name)
+    if icon and icon ~= "" then
+      return icon
+    end
+  end
   local ok, devicons = pcall(require, "nvim-web-devicons")
   if ok then
     local icon = devicons.get_icon(icon_name)
@@ -25,7 +32,8 @@ function M.find_node_modules_bin(binary_name, start_path)
     upward = true,
     path = search_path,
     type = "directory",
-    limit = math.huge,
+    limit = 10,
+    stop = vim.uv.os_homedir(),
   })
 
   for _, node_modules_dir in ipairs(results) do

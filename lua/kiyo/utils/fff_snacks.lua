@@ -10,15 +10,19 @@ local function ensure_picker_initialized()
   if init_failed then
     return false
   end
-  local file_picker = require("fff.file_picker")
+  local ok, file_picker = pcall(require, "fff.file_picker")
+  if not ok then
+    init_failed = true
+    return false
+  end
   if file_picker.is_initialized() then
     return true
   end
-  if file_picker.setup() then
+  local setup_ok, setup_res = pcall(file_picker.setup)
+  if setup_ok and setup_res then
     return true
   end
   init_failed = true
-  vim.notify("fff_snacks: failed to initialize file picker", vim.log.levels.ERROR)
   return false
 end
 
@@ -76,15 +80,16 @@ local function format_file_git_status(item, picker)
   else
     hl = "SnacksPickerGitStatus" .. status.status:sub(1, 1):upper() .. status.status:sub(2)
   end
-  local icon = picker.opts.icons.git[status.status]
+  local git_icons = vim.tbl_get(picker.opts, "icons", "git") or {}
+  local icon = git_icons[status.status]
   if status.staged then
-    icon = picker.opts.icons.git.staged
+    icon = git_icons.staged or icon
   end
   local text_icon = status.status:sub(1, 1):upper()
   text_icon = status.status == "untracked" and "?"
     or status.status == "ignored" and "!"
     or text_icon
-  ret[#ret + 1] = { icon, hl }
+  ret[#ret + 1] = { icon or text_icon, hl }
   ret[#ret + 1] = { " ", virtual = true }
   ret[#ret + 1] = {
     col = 0,
@@ -259,11 +264,23 @@ local live_grep_source = {
 }
 
 function M.find_files(opts)
-  Snacks.picker.pick(vim.tbl_deep_extend("force", find_files_source, opts or {}))
+  opts = opts or {}
+  local target_cwd = opts.cwd and vim.fs.normalize(opts.cwd)
+  local current_cwd = vim.fs.normalize(vim.uv.cwd())
+  if (target_cwd and target_cwd ~= current_cwd) or not ensure_picker_initialized() then
+    return Snacks.picker.files(opts)
+  end
+  Snacks.picker.pick(vim.tbl_deep_extend("force", find_files_source, opts))
 end
 
 function M.live_grep(opts)
-  Snacks.picker.pick(vim.tbl_deep_extend("force", live_grep_source, opts or {}))
+  opts = opts or {}
+  local target_cwd = opts.cwd and vim.fs.normalize(opts.cwd)
+  local current_cwd = vim.fs.normalize(vim.uv.cwd())
+  if (target_cwd and target_cwd ~= current_cwd) or not ensure_picker_initialized() then
+    return Snacks.picker.grep(opts)
+  end
+  Snacks.picker.pick(vim.tbl_deep_extend("force", live_grep_source, opts))
 end
 
 function M.grep_word(opts)

@@ -23,7 +23,10 @@ return {
     -- shows files immediately instead of waiting on a cold scan.
     vim.schedule(function()
       pcall(function()
-        require("fff.file_picker").setup()
+        local fp = require("fff.file_picker")
+        if fp.setup() then
+          fp.scan_files()
+        end
       end)
     end)
   end,
