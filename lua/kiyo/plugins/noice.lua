@@ -21,12 +21,16 @@ return {
         filter = {
           event = "msg_show",
           any = {
+            { find = "%d+L, %d+B" },
             { find = "%d+l, %d+b" },
             { find = "; after #%d+" },
             { find = "; before #%d+" },
+            { find = "%d+ line less" },
+            { find = "%d+ fewer lines" },
+            { find = "%d+ more line" },
           },
         },
-        view = "mini",
+        opts = { skip = true },
       },
     },
     presets = {
