@@ -56,71 +56,10 @@ return {
       },
     })
 
-    -- Configure Astro LSP to dynamically resolve a valid typescript.js tsdk
-    local mason_astro_ts = vim.fn.stdpath("data")
-      .. "/mason/packages/astro-language-server/node_modules/typescript/lib"
-    local mason_ts = vim.fn.stdpath("data")
-      .. "/mason/packages/typescript-language-server/node_modules/typescript/lib"
-
-    local fallback_tsdk = (vim.uv.fs_stat(mason_astro_ts .. "/typescript.js") and mason_astro_ts)
-      or (vim.uv.fs_stat(mason_ts .. "/typescript.js") and mason_ts)
-      or nil
-
-    local function resolve_tsdk(root_dir)
-      if root_dir then
-        local project_ts = root_dir .. "/node_modules/typescript/lib"
-        if
-          vim.uv.fs_stat(project_ts .. "/typescript.js")
-          or vim.uv.fs_stat(project_ts .. "/tsserverlibrary.js")
-        then
-          return project_ts
-        end
-      end
-      return fallback_tsdk
-    end
-
-    vim.lsp.config.astro = {
-      init_options = {
-        typescript = {
-          tsdk = fallback_tsdk,
-        },
-      },
-      before_init = function(params, config)
-        local tsdk = resolve_tsdk(config.root_dir)
-        if tsdk and tsdk ~= "" then
-          ---@diagnostic disable-next-line: inject-field
-          config.init_options = config.init_options or {}
-          ---@diagnostic disable-next-line: inject-field
-          config.init_options.typescript = { tsdk = tsdk }
-          if params and type(params.initializationOptions) == "table" then
-            ---@diagnostic disable-next-line: inject-field
-            params.initializationOptions.typescript = { tsdk = tsdk }
-          end
-        end
-      end,
-    }
-
-    vim.lsp.config.harper_ls = {
-      settings = {
-        ["harper-ls"] = {},
-      },
-    }
-
-    vim.lsp.config.markdown_oxide = {
-      capabilities = {
-        workspace = {
-          didChangeWatchedFiles = {
-            dynamicRegistration = true,
-          },
-        },
-      },
-    }
-
     -- Enable LSP Servers (Native Neovim 0.11+ API)
     -- This is the safest way to ensure your specific servers are loaded.
     -- Note: rust_analyzer is EXCLUDED because it's handled by rustaceanvim.
     vim.lsp.enable({
-      "tsc",
       "ts_ls",
       "html",
       "cssls",
@@ -204,12 +143,7 @@ return {
 
         local wk = require("which-key")
         wk.add({
-          { "<leader>la", vim.lsp.buf.code_action, desc = "Code Action" },
-          {
-            "<leader>lA",
-            vim.lsp.buf.range_code_action,
-            desc = "Range Code Actions",
-          },
+          { "<leader>la", vim.lsp.buf.code_action, desc = "Code Action", mode = { "n", "v" } },
           {
             "<leader>ls",
             vim.lsp.buf.signature_help,
@@ -277,9 +211,10 @@ return {
           })
 
           vim.api.nvim_create_autocmd("LspDetach", {
-            group = vim.api.nvim_create_augroup("lsp-detach", { clear = true }),
+            group = vim.api.nvim_create_augroup("lsp-detach-" .. event.buf, { clear = true }),
+            buffer = event.buf,
             callback = function(event2)
-              vim.lsp.buf.clear_references()
+              vim.lsp.buf.clear_references(event2.buf)
               vim.api.nvim_clear_autocmds({ group = "lsp-highlight", buffer = event2.buf })
             end,
           })

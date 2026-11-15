@@ -101,9 +101,9 @@ autocmd("BufWritePre", {
     if not vim.bo.modifiable or vim.bo.filetype == "diff" or vim.bo.filetype == "gitcommit" then
       return
     end
-    local save_cursor = vim.fn.getpos(".")
-    vim.cmd([[%s/\s\+$//e]])
-    vim.fn.setpos(".", save_cursor)
+    local view = vim.fn.winsaveview()
+    vim.cmd([[keeppatterns %s/\s\+$//e]])
+    vim.fn.winrestview(view)
   end,
   desc = "Remove trailing whitespace",
 })

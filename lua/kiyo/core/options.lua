@@ -38,6 +38,22 @@ if vim.health and type(vim.health._check) == "function" then
   end
 end
 
+-- Workaround for upstream Neovim 0.12 bug (neovim/neovim#36318, #39772):
+-- Decoration provider "win" (ns=nvim.lsp.inlayhint) throws "Invalid 'col': out of range"
+-- when cached inlay hint positions exceed the line length after edits.
+local orig_buf_set_extmark = vim.api.nvim_buf_set_extmark
+local inlay_ns = vim.api.nvim_create_namespace("nvim.lsp.inlayhint")
+vim.api.nvim_buf_set_extmark = function(buf, ns, line, col, opts)
+  if ns == inlay_ns then
+    local ok, res = pcall(orig_buf_set_extmark, buf, ns, line, col, opts)
+    if not ok then
+      return -1
+    end
+    return res
+  end
+  return orig_buf_set_extmark(buf, ns, line, col, opts)
+end
+
 -- Prepend Mason bin directory to PATH so language servers and formatters are immediately available
 local mason_bin = vim.fn.stdpath("data") .. "/mason/bin"
 if vim.fn.isdirectory(mason_bin) == 1 then
@@ -99,6 +115,8 @@ vim.opt.timeoutlen = 1000 -- time to wait for a mapped sequence to complete (in 
 vim.opt.undofile = true -- enable persistent undo
 vim.opt.updatetime = 100 -- faster completion (4000ms default)
 vim.opt.writebackup = false -- if a file is being edited by another program (or was written to file while editing with another program), it is not allowed to be edited
+vim.opt.jumpoptions = "view" -- preserve view state during jumplist navigation
+vim.opt.shortmess:append({ W = true, I = true, c = true, C = true }) -- reduce noisy write/completion messages
 
 -- Diff options (Histogram algorithm + linematch alignment for superior diffs)
 vim.opt.diffopt =

@@ -22,9 +22,15 @@ keymap("n", "<leader>nh", ":nohl<CR>", "Clear highlights")
 
 -- Trim whitespace
 keymap("n", "<leader>cw", function()
-  local save_cursor = vim.fn.getpos(".")
-  vim.cmd([[%s/\s\+$//e]])
-  vim.fn.setpos(".", save_cursor)
+  local ok, trailspace = pcall(require, "mini.trailspace")
+  if ok then
+    trailspace.trim()
+    trailspace.trim_last_lines()
+  else
+    local view = vim.fn.winsaveview()
+    vim.cmd([[keeppatterns %s/\s\+$//e]])
+    vim.fn.winrestview(view)
+  end
 end, "Erase Whitespace")
 
 -- Centered scrolling
